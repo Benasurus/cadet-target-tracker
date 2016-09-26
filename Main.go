@@ -93,10 +93,9 @@ func authNTLM(w http.ResponseWriter, r *http.Request)(bool, string, string) {
         w.Header().Set("WWW-Authenticate", "NTLM")
         http.Error(w, "Unauthorized.", 401)
         return false, "", ""
-        } else {
+        }
         fmt.Println(auth)
         return true, "NTLM", "user"
-    }
 }
 
 func authBasic(w http.ResponseWriter, r *http.Request)(bool, string, string) {
@@ -104,17 +103,17 @@ func authBasic(w http.ResponseWriter, r *http.Request)(bool, string, string) {
     fmt.Println("Trying Basic Auth")
     username, password, ok := r.BasicAuth()
     if ok {
-        ldap_success := true
+        ldapSuccess := true
         group := "admin"
         fmt.Println(password)
         // will need an LDAP lookup using username and password to
         // a) validate the details are correct and
         // b) get the user group information
-        if ldap_success {
+        if ldapSuccess {
             return true, username, group
-        } else {
-            return false, "", ""
         }
+        return false, "", ""
+        
     }
     w.Header().Set("WWW-Authenticate", "Basic realm=\"localhost\"")
 
@@ -122,19 +121,17 @@ func authBasic(w http.ResponseWriter, r *http.Request)(bool, string, string) {
 }
 
 
-func userData(user string,)(bool) {
+func userData(user string, segmentData map[string]bool)(bool, map[string]bool) {
     //QueryTransaction module is used to query transactions table for rows that match a user
-    var tID int
+    var tID string
     var timeStamp, userName string
     var result [4]int
-    var segments map[string]bool
-    segments = make(map[string]bool)
     //Queries databse using SQL calling all rows which match the desired username & scans through returned row 
     err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp,&userName, &result[0], &result[1], &result[2], &result[3])
     //Error handler
 	if err != nil {
 		log.Println(err)
-		return false
+		return false, segmentData
     }
 
     for i := 0; i < 4; i++ {
@@ -142,16 +139,16 @@ func userData(user string,)(bool) {
         for j := 1; j < 5; j++ {
             id := secID+"-seg"+strconv.Itoa(j)
             if j-1 < result[i] {
-                segments[id] = true
+                segmentData[id] = true
             } else {
-                segments[id] = false
+                segmentData[id] = false
             }
-            fmt.Println(id, segments[id])
+            fmt.Println(id, segmentData[id])
         }
     }
     //Prints results
 	    fmt.Println(userName, timeStamp)
-    return true
+    return true, segmentData
 }
 
 func writeTransaction(user string, group string ,s1 int, s2 int, s3 int ,s4 int)(bool) {
@@ -255,36 +252,45 @@ func sector(r1 float64, width float64, theta float64, angle float64, offsetx flo
 }
 
 
-func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety float64)(string) {
+func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety float64, user string)(string) {
     //RoundelBuilder module generates HTML to build each segment of the roundel
     //Defining variables
-    var r1, angle_increment, segment_width, count_segment, count_sector float64
-    var attrs, path, id string
-    //Map variable which store information on each segement
+    var r1, angleIncrement, segmentWidth, countSegment, countSector float64
+    var attrs, path, id, fill string
+    //Map variable which stores information on each segement
     var segmentMap map[string]segmentInfo 
     
     segmentMap = make(map[string]segmentInfo)  
+    //Calls segment info
     segmentMap = info(segmentMap)
     
+    //Map variable which stores user data for each segment
+    var segmentData map[string]bool
+
+    segmentData = make(map[string]bool)
+    //Calls user data
+    ok, segmentData := userData(user, segmentData)
+    if ok == false {
+        return "Error"
+    }
     //Calculates angle and width
-    angle_increment = 360 / sectors
-    segment_width = (offsetx / segments)*0.95
+    angleIncrement = 360 / sectors
+    segmentWidth = (offsetx / segments)*0.95
     r1 = 20
     path = ""
     //For loop which goes through and builds all segments
-    for count_segment = 0; count_segment < segments; count_segment ++ {
-        for count_sector = 0; count_sector < sectors; count_sector ++ {
-            id = "seg" + strconv.FormatFloat(count_segment, 'f', 0, 64) + "-sec" + strconv.FormatFloat(count_sector+1, 'f', 0, 64)
-            /*if segmentState[id].State == true {
-                fill := "yellow"
+    for countSegment = 0; countSegment < segments; countSegment ++ {
+        for countSector = 0; countSector < sectors; countSector ++ {
+            id = "seg" + strconv.FormatFloat(countSegment, 'f', 0, 64) + "-sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64)
+            if segmentData[id]== true {
+                fill = "yellow"
             }  else {
-                    fill := "none"
-                }*/
-            fill := "none"
+                    fill = "none"
+                }
             attrs = "id=\"" + id + "\" stroke=\"black\" fill=\"" + fill+ "\""
-            path += sector(r1, segment_width, count_sector*angle_increment, angle_increment, offsetx, offsety, attrs, segmentMap[id])
+            path += sector(r1, segmentWidth, countSector*angleIncrement, angleIncrement, offsetx, offsety, attrs, segmentMap[id])
         }
-        r1 += segment_width
+        r1 += segmentWidth
     }
     return path
 }
@@ -313,7 +319,7 @@ func input(w http.ResponseWriter, r *http.Request) {
     }
     if r.Method == "GET" {
         pagevars := map[string]interface{}{
-            "Path"  : template.HTML(roundelBuilder(15,5, 400,400))}
+            "Path"  : template.HTML(roundelBuilder(15,5, 400,400, "tesdt"))}
         t, err := template.ParseFiles("test.html")
         if err != nil {
             log.Println(err)
@@ -347,7 +353,6 @@ func main() {
     if err != nil {
         log.Println(err)
     }
-    queryTransaction("tesdt")
     //Web server
     //Defines handler functions for each webpage
     http.HandleFunc("/", sayhelloName) // set router

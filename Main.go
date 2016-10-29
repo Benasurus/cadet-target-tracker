@@ -121,7 +121,7 @@ func authBasic(w http.ResponseWriter, r *http.Request)(bool, string, string) {
 }
 
 
-func userData(user string, segmentData map[string]bool)(bool, map[string]bool) {
+func userData(user string, segmentData map[string]bool) (bool, map[string]bool) {
     //QueryTransaction module is used to query transactions table for rows that match a user
     var tID string
     var timeStamp, userName string
@@ -134,16 +134,14 @@ func userData(user string, segmentData map[string]bool)(bool, map[string]bool) {
 		return false, segmentData
     }
 
-    for i := 0; i < 4; i++ {
-        secID := "sec"+strconv.Itoa(i)
+    for i := 1; i < 5; i++ {
         for j := 1; j < 5; j++ {
-            id := secID+"-seg"+strconv.Itoa(j)
-            if j-1 < result[i] {
+            id := "sec"+strconv.Itoa(i)+"-seg"+strconv.Itoa(j)
+            if j-1 < result[i-1] {
                 segmentData[id] = true
             } else {
                 segmentData[id] = false
             }
-            fmt.Println(id, segmentData[id])
         }
     }
     //Prints results
@@ -175,16 +173,21 @@ func deleteUser(userDel string,)(bool) {
 
 }
 
-func info(segmentMap map[string]segmentInfo)(map[string]segmentInfo) {
+func info(sectors, segments float64)(string) {
     //Define variables
-    var segmentID, segmentLabel, segmentDescription string
+    var segmentID, segmentLabel, segmentDescription, id, segID, div string
+    var countSegment, countSector float64
+    //Map variable which stores information on each segement
+    var segmentMap map[string]string
+    
+    segmentMap = make(map[string]string)
     //Queries the sectors database
     rows, err := db.Query("SELECT * FROM segments")
     fmt.Println(rows)
     //Error handler
     if err != nil {
 		log.Println(err)
-		return segmentMap
+		return "Error"
     }
     defer rows.Close()
     //Scans through returned values and retrieves sector names and inserts them into the defined variables
@@ -192,19 +195,26 @@ func info(segmentMap map[string]segmentInfo)(map[string]segmentInfo) {
         err := rows.Scan(&segmentID, &segmentLabel, &segmentDescription)
         if err != nil {
 		     log.Fatal(err)
-             return segmentMap
+             return "Error"
         }
-        segmentMap[segmentID] = segmentInfo{segmentLabel, segmentDescription}
+        segmentMap[segmentID] = segmentLabel
     }
-    return segmentMap
+    for countSegment = 0; countSegment < segments; countSegment ++ {
+        for countSector = 0; countSector < sectors; countSector ++ {
+            id = "div-sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-seg" + strconv.FormatFloat(countSegment, 'f', 0, 64)
+            segID = "sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-seg" + strconv.FormatFloat(countSegment, 'f', 0, 64)
+            div =  "<div id=\""+id+"\">"+segmentMap[segID]+"</div>"
+        }
+    }
+    return div
 }
 
-func sector(r1 float64, width float64, theta float64, angle float64, offsetx float64, offsety float64, attrs string,segmentMap segmentInfo)(output string) {
+func sector(r1 float64, width float64, theta float64, angle float64, offsetx float64, offsety float64, attrs string, id string, segment string)(output string) {
     //Variable definition
     var sigma float64
     var r2 float64
-    var x1, x2, x3, x4, xm float64
-    var y1, y2, y3, y4, ym float64
+    var x1, x2, x3, x4 float64
+    var y1, y2, y3, y4 float64
     //Degrees to Radians conversion
     theta = theta*math.Pi/180
     angle = angle*math.Pi/180
@@ -224,30 +234,23 @@ func sector(r1 float64, width float64, theta float64, angle float64, offsetx flo
     //Point 4
     x4 = -r1*math.Sin(sigma)+offsetx
     y4 = -r1*math.Cos(sigma)+offsety
-    //Calculate midpoint of segment
-    xm = (x1+x2+x3+x4)/4
-    ym = (y1+y2+y3+y4)/4
     //Ouput in format for use in HTML SVG
         //Round values to nearest int & convert to string format
         x1s := strconv.FormatFloat(x1, 'f', 0, 64) 
         x2s := strconv.FormatFloat(x2, 'f', 0, 64)
         x3s := strconv.FormatFloat(x3, 'f', 0, 64)
         x4s := strconv.FormatFloat(x4, 'f', 0, 64)
-        xms := strconv.FormatFloat(xm, 'f', 0, 64)
+        //xms := strconv.FormatFloat(xm, 'f', 0, 64)
         y1s := strconv.FormatFloat(y1, 'f', 0, 64)
         y2s := strconv.FormatFloat(y2, 'f', 0, 64)
         y3s := strconv.FormatFloat(y3, 'f', 0, 64)
         y4s := strconv.FormatFloat(y4, 'f', 0, 64)
-        yms := strconv.FormatFloat(ym, 'f', 0, 64)
+        //yms := strconv.FormatFloat(ym, 'f', 0, 64)
         r1s := strconv.FormatFloat(r1, 'f', 0, 64)
         r2s := strconv.FormatFloat(r2, 'f', 0, 64)
-    if len(segmentMap.Label) > 10 {
-        newText := "<tspan>"+segmentMap.Label[:10]+"</tspan><tspan>"+segmentMap.Label[11:]+"</tspan>"
-        fmt.Println(newText)
-        segmentMap.Label = newText
-
-    }
-    output = "<path "+attrs+" d=\"M"+x1s+" "+y1s+" L"+x2s+" "+y2s+" A"+r2s+" "+r2s+" 0 0 0 "+x3s+" "+y3s+" L"+x4s+" "+y4s+" A"+r1s+" "+r1s+" 0 0 1 "+x1s+" "+y1s+"\"/>\n<text x=\""+xms+"\" y=\""+yms+"\">"+segmentMap.Label+"</text>\n"
+    
+    
+    output = "<path "+attrs+" d=\"M"+x1s+" "+y1s+" L"+x2s+" "+y2s+" A"+r2s+" "+r2s+" 0 0 0 "+x3s+" "+y3s+" L"+x4s+" "+y4s+" A"+r1s+" "+r1s+" 0 0 1 "+x1s+" "+y1s+"\"/>\n"
     return output
 }
 
@@ -257,13 +260,6 @@ func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety 
     //Defining variables
     var r1, angleIncrement, segmentWidth, countSegment, countSector float64
     var attrs, path, id, fill string
-    //Map variable which stores information on each segement
-    var segmentMap map[string]segmentInfo 
-    
-    segmentMap = make(map[string]segmentInfo)  
-    //Calls segment info
-    segmentMap = info(segmentMap)
-    
     //Map variable which stores user data for each segment
     var segmentData map[string]bool
 
@@ -281,14 +277,14 @@ func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety 
     //For loop which goes through and builds all segments
     for countSegment = 0; countSegment < segments; countSegment ++ {
         for countSector = 0; countSector < sectors; countSector ++ {
-            id = "seg" + strconv.FormatFloat(countSegment, 'f', 0, 64) + "-sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64)
-            if segmentData[id]== true {
+            id = "sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-seg" + strconv.FormatFloat(countSegment, 'f', 0, 64)
+            if segmentData[id]==true {
                 fill = "yellow"
             }  else {
-                    fill = "none"
+                fill = "transparent"
                 }
-            attrs = "id=\"" + id + "\" stroke=\"black\" fill=\"" + fill+ "\""
-            path += sector(r1, segmentWidth, countSector*angleIncrement, angleIncrement, offsetx, offsety, attrs, segmentMap[id])
+            attrs = "id=\"" +id+ "\" stroke=\"black\" fill=\"" +fill+ "\" onclick=\"doSetHighlight('" +id+ "');\""
+            path += sector(r1, segmentWidth, countSector*angleIncrement, angleIncrement, offsetx, offsety, attrs, id, strconv.FormatFloat(countSegment, 'f', 0, 64))
         }
         r1 += segmentWidth
     }
@@ -326,6 +322,17 @@ func input(w http.ResponseWriter, r *http.Request) {
         } else {
             err = t.Execute(w, pagevars)
                if err != nil {
+                log.Println(err)
+                }
+        }
+        pagevars = map[string]interface{}{
+            "Path"  : template.HTML(roundelBuilder(15,5, 400,400, "tesdt"))}
+        t, err = template.ParseFiles("test.html")
+        if err != nil {
+            log.Println(err)
+        } else {
+            err = t.Execute(w, pagevars)
+                if err != nil {
                 log.Println(err)
                 }
         }  

@@ -1,11 +1,27 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <script type="text/javascript">
+        function doSetHighlight(segment){
+            var seg = document.getElementById(segment);
+
+            seg.style.fill = 'yellow';
+        }
+    </script>    
+    <style>
+        .seg0 {font-size: 40%
+        }
+        .seg1 {font-size: 50%
+        }
+        .seg2 {font-size: 60%
+        }
+        .seg3 {font-size: 70%
+        }
+        .seg4 {font-size: 80%
+        }
+    </style>
+</head> 
 <body>
-<style>
-    path:hover { 
-    fill: yellow;
-}
-</style>
 <h1>Are You On Target?</h1>
 
 <div style="height:800px; width:800px; margin:0 auto;">
@@ -13,5 +29,6 @@
     {{ .Path }}
 </svg>
 <div>
+    {{ .Divs }}
 </body>
 </html>

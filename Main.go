@@ -173,48 +173,12 @@ func deleteUser(userDel string,)(bool) {
 
 }
 
-func info(sectors, segments float64)(string) {
-    //Define variables
-    var segmentID, segmentLabel, segmentDescription, id, segID, div string
-    var countSegment, countSector float64
-    //Map variable which stores information on each segement
-    var segmentMap map[string]string
-    
-    segmentMap = make(map[string]string)
-    //Queries the sectors database
-    rows, err := db.Query("SELECT * FROM segments")
-    fmt.Println(rows)
-    //Error handler
-    if err != nil {
-		log.Println(err)
-		return "Error"
-    }
-    defer rows.Close()
-    //Scans through returned values and retrieves sector names and inserts them into the defined variables
-    for rows.Next() {
-        err := rows.Scan(&segmentID, &segmentLabel, &segmentDescription)
-        if err != nil {
-		     log.Fatal(err)
-             return "Error"
-        }
-        segmentMap[segmentID] = segmentLabel
-    }
-    for countSegment = 0; countSegment < segments; countSegment ++ {
-        for countSector = 0; countSector < sectors; countSector ++ {
-            id = "div-sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-seg" + strconv.FormatFloat(countSegment, 'f', 0, 64)
-            segID = "sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-seg" + strconv.FormatFloat(countSegment, 'f', 0, 64)
-            div =  "<div id=\""+id+"\">"+segmentMap[segID]+"</div>"
-        }
-    }
-    return div
-}
-
-func sector(r1 float64, width float64, theta float64, angle float64, offsetx float64, offsety float64, attrs string, id string, segment string)(output string) {
+func sector(r1 float64, width float64, theta float64, angle float64, offsetx float64, offsety float64, attrs string, id string, segment string)(output, xms, yms string) {
     //Variable definition
     var sigma float64
     var r2 float64
-    var x1, x2, x3, x4 float64
-    var y1, y2, y3, y4 float64
+    var x1, x2, x3, x4, xm float64
+    var y1, y2, y3, y4, ym float64
     //Degrees to Radians conversion
     theta = theta*math.Pi/180
     angle = angle*math.Pi/180
@@ -234,40 +198,65 @@ func sector(r1 float64, width float64, theta float64, angle float64, offsetx flo
     //Point 4
     x4 = -r1*math.Sin(sigma)+offsetx
     y4 = -r1*math.Cos(sigma)+offsety
+    //Midpoint
+    xm = (x1 + x3) / 2
+    ym = (y1 + y3) / 2
     //Ouput in format for use in HTML SVG
         //Round values to nearest int & convert to string format
         x1s := strconv.FormatFloat(x1, 'f', 0, 64) 
         x2s := strconv.FormatFloat(x2, 'f', 0, 64)
         x3s := strconv.FormatFloat(x3, 'f', 0, 64)
         x4s := strconv.FormatFloat(x4, 'f', 0, 64)
-        //xms := strconv.FormatFloat(xm, 'f', 0, 64)
+        xms = strconv.FormatFloat(xm, 'f', 0, 64)
         y1s := strconv.FormatFloat(y1, 'f', 0, 64)
         y2s := strconv.FormatFloat(y2, 'f', 0, 64)
         y3s := strconv.FormatFloat(y3, 'f', 0, 64)
         y4s := strconv.FormatFloat(y4, 'f', 0, 64)
-        //yms := strconv.FormatFloat(ym, 'f', 0, 64)
+        yms = strconv.FormatFloat(ym, 'f', 0, 64)
         r1s := strconv.FormatFloat(r1, 'f', 0, 64)
         r2s := strconv.FormatFloat(r2, 'f', 0, 64)
     
     
     output = "<path "+attrs+" d=\"M"+x1s+" "+y1s+" L"+x2s+" "+y2s+" A"+r2s+" "+r2s+" 0 0 0 "+x3s+" "+y3s+" L"+x4s+" "+y4s+" A"+r1s+" "+r1s+" 0 0 1 "+x1s+" "+y1s+"\"/>\n"
-    return output
+    return output, xms, yms
 }
 
 
-func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety float64, user string)(string) {
+func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety float64, user string)(path, div string) {
     //RoundelBuilder module generates HTML to build each segment of the roundel
     //Defining variables
     var r1, angleIncrement, segmentWidth, countSegment, countSector float64
-    var attrs, path, id, fill string
+    var attrs, id, fill, segmentID, segmentLabel, segmentDescription string
     //Map variable which stores user data for each segment
     var segmentData map[string]bool
 
     segmentData = make(map[string]bool)
+    //Map variable which stores information on each segement
+    var segmentMap map[string]string
+    
+    segmentMap = make(map[string]string)
+    //Queries the sectors database
+    rows, err := db.Query("SELECT * FROM segments")
+    fmt.Println(rows)
+    //Error handler
+    if err != nil {
+		log.Println(err)
+		return "Error", "Error"
+    }
+    defer rows.Close()
     //Calls user data
     ok, segmentData := userData(user, segmentData)
     if ok == false {
-        return "Error"
+        return "Error", "Error"
+    }
+    //Scans through returned values and retrieves sector names and inserts them into the defined variables
+    for rows.Next() {
+        err := rows.Scan(&segmentID, &segmentLabel, &segmentDescription)
+        if err != nil {
+		     log.Fatal(err)
+             return "Error", "Error"
+        }
+        segmentMap[segmentID] = segmentLabel
     }
     //Calculates angle and width
     angleIncrement = 360 / sectors
@@ -284,11 +273,13 @@ func roundelBuilder(sectors float64 ,segments float64, offsetx float64, offsety 
                 fill = "transparent"
                 }
             attrs = "id=\"" +id+ "\" stroke=\"black\" fill=\"" +fill+ "\" onclick=\"doSetHighlight('" +id+ "');\""
-            path += sector(r1, segmentWidth, countSector*angleIncrement, angleIncrement, offsetx, offsety, attrs, id, strconv.FormatFloat(countSegment, 'f', 0, 64))
+            sectorOutput, xms, yms := sector(r1, segmentWidth, countSector*angleIncrement, angleIncrement, offsetx, offsety, attrs, id, strconv.FormatFloat(countSegment, 'f', 0, 64))
+            path += sectorOutput
+            div =  div + "<div id=\"div-"+id+"\" style=\"-webkit-transform:rotate("+strconv.FormatFloat(360-(countSector*angleIncrement), 'f', 0, 64)+"deg); position: absolute; top:"+yms+"px; left:"+xms+"px; \" \">"+segmentMap[id]+"</div>"
         }
         r1 += segmentWidth
     }
-    return path
+    return path, div
 }
 
 func sayhelloName(w http.ResponseWriter, r *http.Request) {
@@ -314,25 +305,16 @@ func input(w http.ResponseWriter, r *http.Request) {
         return
     }
     if r.Method == "GET" {
+        path, div := roundelBuilder(15,5, 400,400, "tesdt")
         pagevars := map[string]interface{}{
-            "Path"  : template.HTML(roundelBuilder(15,5, 400,400, "tesdt"))}
+            "Path"  : template.HTML(path),
+            "Divs"  : template.HTML(div)}
         t, err := template.ParseFiles("test.html")
         if err != nil {
             log.Println(err)
         } else {
             err = t.Execute(w, pagevars)
                if err != nil {
-                log.Println(err)
-                }
-        }
-        pagevars = map[string]interface{}{
-            "Path"  : template.HTML(roundelBuilder(15,5, 400,400, "tesdt"))}
-        t, err = template.ParseFiles("test.html")
-        if err != nil {
-            log.Println(err)
-        } else {
-            err = t.Execute(w, pagevars)
-                if err != nil {
                 log.Println(err)
                 }
         }  

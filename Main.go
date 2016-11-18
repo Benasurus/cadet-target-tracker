@@ -141,7 +141,7 @@ func userData(user string, sectorData map[string]bool) (bool, map[string]bool) {
 
     for i := 1; i < 5; i++ {
         for j := 1; j < 5; j++ {
-            id := "sec"+strconv.Itoa(i)+"-seg"+strconv.Itoa(j)
+            id := "sec"+strconv.Itoa(i)+"-set"+strconv.Itoa(j)
             if j-1 < result[i-1] {
                 sectorData[id] = true
             } else {
@@ -178,7 +178,7 @@ func deleteUser(userDel string,)(bool) {
 
 }
 
-func roundelBuilder(sectors, sections float64, user string)(path, div string) {
+func progressionBuilder(sectors, sections float64, user string)(path, info string) {
     //RoundelBuilder module generates HTML to build each sector of the roundel
     //Defining variables
     var countSection, countSector float64
@@ -217,18 +217,18 @@ func roundelBuilder(sectors, sections float64, user string)(path, div string) {
     //For loop which goes through and builds all sectors
     for countSector = 0; countSector < sectors; countSector ++ {
         for countSection = 0; countSection < sections; countSection ++ {
-            id = "sector" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-section" + strconv.FormatFloat(countSection, 'f', 0, 64)
+            id = "sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSection, 'f', 0, 64)
             /*if sectorData[id]==true {
                 fill = "yellow"
             }  else {
                 fill = "transparent"
                 }*/
             //attrs = "id=\"" +id+ "\" stroke=\"black\" fill=\"" +fill+ "\" onclick=\"doSetHighlight('" +id+ "');\""
-            section = "<div id="+id+">"+section+"</div>"
-            div =  div + "<div id=\"div-"+id+"\">"+sectorMap[id]+"</div>"
+            section = section + "<div id="+id+">"+section+"</div>"
+            info =  info + "<div id=\"info-"+id+"\">"+sectorMap[id]+"</div>"
         }
     }
-    return section, div
+    return section, info
 }
 
 func sayhelloName(w http.ResponseWriter, r *http.Request) {
@@ -254,10 +254,10 @@ func input(w http.ResponseWriter, r *http.Request) {
         return
     }
     if r.Method == "GET" {
-        sector, div := roundelBuilder(15,5, "tesdt")
+        sector, info := progressionBuilder(15,5, "tesdt")
         pagevars := map[string]interface{}{
             "sectors"  : template.HTML(sector),
-            "divs"  : template.HTML(div)}
+            "info"  : template.HTML(info)}
         t, err := template.ParseFiles("test.html")
         if err != nil {
             log.Println(err)

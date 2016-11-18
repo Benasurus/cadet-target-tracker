@@ -17,289 +17,294 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 //sector = set
-//section = section
-//5 sectors per section
-//14 sections
+//section = sec
+//5 sectors per section (0-4)
+//15 sections (1-15)
 
 //Package definition
 package main
 
 // Importing GO modules used by the program
 import (
-    "database/sql"
-    _ "github.com/go-sql-driver/mysql"
-    "fmt"
-    "github.com/gorilla/securecookie"
-    "github.com/gorilla/sessions"
-    "html/template"
-    //"io"
-    "log"
-    //"math"
-    "net/http"
-    "strconv"
-    "strings"
+	"database/sql"
+	"fmt"
+	"html/template"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	//"io"
+	"log"
+	//"math"
+	"net/http"
+	"strconv"
+	"strings"
 )
 
 //Defining global variables
-var db *sql.DB //database variable
-var err error  //error variable
+var db *sql.DB                                                          //database variable
+var err error                                                           //error variable
 var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32)) //cookie store variable
 
 //defining a structure to store sectorLabel and sectorDescription in a map variable
 type sectorInfo struct {
-        Label string
-        Description string
-    }
-
-
-func auth(w http.ResponseWriter, r *http.Request)(bool, string, string) {
-    //Auth module is called to authenticate a user
-    //Variables
-    var val bool
-    var username, group string
-    //Generates a session
-    session, err := store.Get(r, "session-name")
-    //Error handler
-    if err != nil {
-        log.Println(err)
-        return false, "", ""
-    }
-    //Authenticates the cookie
-    username, ok := session.Values["username"].(string)
-    if ok {
-        group, ok := session.Values["group"].(string)
-        if ok {
-            return true,username,group
-        }
-    }
-    //Authenticates via NTLM and then HTTP Basic 
-    val, username, group = authNTLM(w, r)
-    if !val {
-        val, username, group = authBasic(w, r)
-    }
-    //If NTLM or Basic authentication succeeds generates a cookie
-    if val {
-        session.Values["username"] = username
-        session.Values["group"] = group
-        session.Save(r, w)
-        return true, username, group
-    }
-    //Returns false and empty values if authentication fails
-    return false, "", ""
+	Label       string
+	Description string
 }
 
-
-
-func authNTLM(w http.ResponseWriter, r *http.Request)(bool, string, string) {
-    //AuthNTLM module authenticates via NTLM, called only by auth module
-    auth := r.Header.Get("Authorization")
-    if !(strings.HasPrefix(auth,"NTLM ")) {
-        fmt.Println("Trying NTML")
-        w.Header().Set("WWW-Authenticate", "NTLM")
-        http.Error(w, "Unauthorized.", 401)
-        return false, "", ""
-        }
-        fmt.Println(auth)
-        return true, "NTLM", "user"
+func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
+	//Auth module is called to authenticate a user
+	//Variables
+	var val bool
+	var username, group string
+	//Generates a session
+	session, err := store.Get(r, "session-name")
+	//Error handler
+	if err != nil {
+		log.Println(err)
+		return false, "", ""
+	}
+	//Authenticates the cookie
+	username, ok := session.Values["username"].(string)
+	if ok {
+		group, ok := session.Values["group"].(string)
+		if ok {
+			return true, username, group
+		}
+	}
+	//Authenticates via NTLM and then HTTP Basic
+	val, username, group = authNTLM(w, r)
+	if !val {
+		val, username, group = authBasic(w, r)
+	}
+	//If NTLM or Basic authentication succeeds generates a cookie
+	if val {
+		session.Values["username"] = username
+		session.Values["group"] = group
+		session.Save(r, w)
+		return true, username, group
+	}
+	//Returns false and empty values if authentication fails
+	return false, "", ""
 }
 
-func authBasic(w http.ResponseWriter, r *http.Request)(bool, string, string) {
-    //AuthBasic module authenticates via HTTP basic, called only by auth module
-    fmt.Println("Trying Basic Auth")
-    username, password, ok := r.BasicAuth()
-    if ok {
-        ldapSuccess := true
-        group := "admin"
-        fmt.Println(password)
-        // will need an LDAP lookup using username and password to
-        // a) validate the details are correct and
-        // b) get the user group information
-        if ldapSuccess {
-            return true, username, group
-        }
-        return false, "", ""
-        
-    }
-    w.Header().Set("WWW-Authenticate", "Basic realm=\"localhost\"")
-
-    return false,"",""
+func authNTLM(w http.ResponseWriter, r *http.Request) (bool, string, string) {
+	//AuthNTLM module authenticates via NTLM, called only by auth module
+	auth := r.Header.Get("Authorization")
+	if !(strings.HasPrefix(auth, "NTLM ")) {
+		fmt.Println("Trying NTML")
+		w.Header().Set("WWW-Authenticate", "NTLM")
+		http.Error(w, "Unauthorized.", 401)
+		return false, "", ""
+	}
+	fmt.Println(auth)
+	return true, "NTLM", "user"
 }
 
+func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
+	//AuthBasic module authenticates via HTTP basic, called only by auth module
+	fmt.Println("Trying Basic Auth")
+	username, password, ok := r.BasicAuth()
+	if ok {
+		ldapSuccess := true
+		group := "admin"
+		fmt.Println(password)
+		// will need an LDAP lookup using username and password to
+		// a) validate the details are correct and
+		// b) get the user group information
+		if ldapSuccess {
+			return true, username, group
+		}
+		return false, "", ""
+
+	}
+	w.Header().Set("WWW-Authenticate", "Basic realm=\"localhost\"")
+
+	return false, "", ""
+}
 
 func userData(user string, sectorData map[string]bool) (bool, map[string]bool) {
-    //QueryTransaction module is used to query transactions table for rows that match a user
-    var tID string
-    var timeStamp, userName string
-    var result [4]int
-    //Queries databse using SQL calling all rows which match the desired username & scans through returned row 
-    err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp,&userName, &result[0], &result[1], &result[2], &result[3])
-    //Error handler
+	//QueryTransaction module is used to query transactions table for rows that match a user
+	var tID string
+	var timeStamp, userName string
+	var result [4]int
+	//Queries databse using SQL calling all rows which match the desired username & scans through returned row
+	err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp, &userName, &result[0], &result[1], &result[2], &result[3])
+	//Error handler
 	if err != nil {
 		log.Println(err)
 		return false, sectorData
-    }
+	}
 
-    for i := 1; i < 5; i++ {
-        for j := 1; j < 5; j++ {
-            id := "sec"+strconv.Itoa(i)+"-set"+strconv.Itoa(j)
-            if j-1 < result[i-1] {
-                sectorData[id] = true
-            } else {
-                sectorData[id] = false
-            }
-        }
-    }
-    //Prints results
-	    fmt.Println(userName, timeStamp)
-    return true, sectorData
+	for i := 1; i < 5; i++ {
+		for j := 1; j < 5; j++ {
+			id := "sec" + strconv.Itoa(i) + "-set" + strconv.Itoa(j)
+			if j-1 < result[i-1] {
+				sectorData[id] = true
+			} else {
+				sectorData[id] = false
+			}
+		}
+	}
+	//Prints results
+	fmt.Println(userName, timeStamp)
+	return true, sectorData
 }
 
-func writeTransaction(user string, group string ,s1 int, s2 int, s3 int ,s4 int)(bool) {
-    //WriteTransaction module writes a row to the transactions table under a username
-    _, err := db.Exec("INSERT INTO transactions(userName,sector1,sector2,sector3,sector4) VALUES(?,?,?,?,?)",user,s1,s2,s3,s4)
-    //Error handler
-    if err != nil {
-        log.Println(err)   
-        return false
-    }
-    return true
-
-}
-
-func deleteUser(userDel string,)(bool) {
-    //Deletes all rows where the username matches
-    _, err := db.Exec("DELETE FROM transactions WHERE userName=?",userDel)
-    //Error Handler
-    if err != nil {
+func writeTransaction(user string, group string, s1 int, s2 int, s3 int, s4 int) bool {
+	//WriteTransaction module writes a row to the transactions table under a username
+	_, err := db.Exec("INSERT INTO transactions(userName,sector1,sector2,sector3,sector4) VALUES(?,?,?,?,?)", user, s1, s2, s3, s4)
+	//Error handler
+	if err != nil {
 		log.Println(err)
 		return false
-    }
-    return true
+	}
+	return true
 
 }
 
-func progressionBuilder(sectors, sections float64, user string)(path, info string) {
-    //RoundelBuilder module generates HTML to build each sector of the roundel
-    //Defining variables
-    var countSection, countSector float64
-    var id, sectorID, sectorLabel, sectorDescription, section string
-    //Map variable which stores user data for each sector
-    var sectorData map[string]bool
-
-    sectorData = make(map[string]bool)
-    //Map variable which stores information on each segement
-    var sectorMap map[string]string
-    
-    sectorMap = make(map[string]string)
-    //Queries the sectors database
-    rows, err := db.Query("SELECT * FROM sectors")
-    fmt.Println(rows)
-    //Error handler
-    if err != nil {
+func deleteUser(userDel string) bool {
+	//Deletes all rows where the username matches
+	_, err := db.Exec("DELETE FROM transactions WHERE userName=?", userDel)
+	//Error Handler
+	if err != nil {
 		log.Println(err)
-		return "Error", "Error"
-    }
-    defer rows.Close()
-    //Calls user data
-    ok, sectorData := userData(user, sectorData)
-    if ok == false {
-        return "Error", "Error"
-    }
-    //Scans through returned values and retrieves sector names and inserts them into the defined variables
-    for rows.Next() {
-        err := rows.Scan(&sectorID, &sectorLabel, &sectorDescription)
-        if err != nil {
-		     log.Fatal(err)
-             return "Error", "Error"
-        }
-        sectorMap[sectorID] = sectorLabel
-    }
-    //For loop which goes through and builds all sectors
-    for countSector = 0; countSector < sectors; countSector ++ {
-        for countSection = 0; countSection < sections; countSection ++ {
-            id = "sec" + strconv.FormatFloat(countSector+1, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSection, 'f', 0, 64)
-            /*if sectorData[id]==true {
-                fill = "yellow"
-            }  else {
-                fill = "transparent"
-                }*/
-            //attrs = "id=\"" +id+ "\" stroke=\"black\" fill=\"" +fill+ "\" onclick=\"doSetHighlight('" +id+ "');\""
-            section = section + "<div id="+id+">"+section+"</div>"
-            info =  info + "<div id=\"info-"+id+"\">"+sectorMap[id]+"</div>"
-        }
-    }
-    return section, info
+		return false
+	}
+	return true
+
+}
+
+func progressionBuilder(sectors, sections float64, user string) (html string) {
+	//progressionBuilder module generates HTML to build each sector
+	//Defining variables
+	var countSection, countSector float64
+	var id, sectorID, sectorLabel, sectorDescription string
+	//Map variable which stores user data for each sector
+	var sectorData map[string]bool
+
+	sectorData = make(map[string]bool)
+	//Map variable which stores sector title
+	var sectorTitle map[string]string
+
+	sectorTitle = make(map[string]string)
+	//Map variable which stores information on each sector
+	var sectorDesc map[string]string
+
+	sectorDesc = make(map[string]string)
+	//Queries the sectors database
+	rows, err := db.Query("SELECT * FROM sectors")
+	fmt.Println(rows)
+	//Error handler
+	if err != nil {
+		log.Println(err)
+		return "Error"
+	}
+	defer rows.Close()
+	//Calls user data
+	ok, sectorData := userData(user, sectorData)
+	if ok == false {
+		return "Error"
+	}
+	//Scans through returned values and retrieves sector names and inserts them into the defined variables
+	for rows.Next() {
+		err := rows.Scan(&sectorID, &sectorLabel, &sectorDescription)
+		if err != nil {
+			log.Fatal(err)
+			return "Error"
+		}
+		sectorTitle[sectorID] = sectorLabel
+		sectorDesc[sectorID] = sectorDescription
+	}
+	//For loop which goes through and builds all sectors
+	for countSection = 1; countSection < sections+1; countSection++ {
+		id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set0"
+		html += "<div id=\"section-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"section\">"
+		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div>"
+		for countSector = 1; countSector < sectors; countSector++ {
+			id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSector, 'f', 0, 64)
+			html += "<div id=\"sector-" + id + "\" class=\"sector\" onclick=\"doSetHighlight('sector-" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
+		}
+		html += "</div>"
+	}
+	return html
 }
 
 func sayhelloName(w http.ResponseWriter, r *http.Request) {
-    //Webpage handler for the root domain
-    r.ParseForm()  // parse arguments, you have to call this by yourself
-    fmt.Println(r.Form)  // print form information in server side
-    fmt.Println("path", r.URL.Path)
-    fmt.Println("scheme", r.URL.Scheme)
-    fmt.Println(r.Form["url_long"])
-    for k, v := range r.Form {
-        fmt.Println("key:", k)
-        fmt.Println("val:", strings.Join(v, ""))
-    }
-    fmt.Fprintf(w, "Hello Ben!") // send data to client side
+	//Webpage handler for the root domain
+	r.ParseForm()       // parse arguments, you have to call this by yourself
+	fmt.Println(r.Form) // print form information in server side
+	fmt.Println("path", r.URL.Path)
+	fmt.Println("scheme", r.URL.Scheme)
+	fmt.Println(r.Form["url_long"])
+	for k, v := range r.Form {
+		fmt.Println("key:", k)
+		fmt.Println("val:", strings.Join(v, ""))
+	}
+	fmt.Fprintf(w, "Hello Ben!") // send data to client side
 }
 
-func input(w http.ResponseWriter, r *http.Request) {
-    //authorised, username, group := auth(w, r)
-    authorised := true
-    //fmt.Println(username,group)
-    if !authorised {
-        // fmt.Fprintf(w, "Failed to Authenticate")
-        return
-    }
-    if r.Method == "GET" {
-        sector, info := progressionBuilder(15,5, "tesdt")
-        pagevars := map[string]interface{}{
-            "sectors"  : template.HTML(sector),
-            "info"  : template.HTML(info)}
-        t, err := template.ParseFiles("test.html")
-        if err != nil {
-            log.Println(err)
-        } else {
-            err = t.Execute(w, pagevars)
-               if err != nil {
-                log.Println(err)
-                }
-        }  
-    } else {
-        r.ParseForm()
-        // logic part of log in
-        //sector := r.Form["username"][0]
-        //sector1, err := strconv.Atoi(r.Form["sector1"][0])
-        //if err != nil{
-        //   log.Println(err)
-        //}
-    }
+func progressionTracker(w http.ResponseWriter, r *http.Request) {
+	//authorised, username, group := auth(w, r)
+	authorised := true
+	//fmt.Println(username,group)
+	if !authorised {
+		// fmt.Fprintf(w, "Failed to Authenticate")
+		return
+	}
+	if r.Method == "GET" {
+		html := progressionBuilder(5, 15, "tesdt")
+		pagevars := map[string]interface{}{
+			"html": template.HTML(html)}
+		t, err := template.ParseFiles("resources/cadet.html")
+		if err != nil {
+			log.Println(err)
+		} else {
+			err = t.Execute(w, pagevars)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	} else {
+		r.ParseForm()
+		// logic part of log in
+		//sector := r.Form["username"][0]
+		//sector1, err := strconv.Atoi(r.Form["sector1"][0])
+		//if err != nil{
+		//   log.Println(err)
+		//}
+	}
+}
+
+func dbWrite(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fmt.Println(r.Form)
+
 }
 
 func main() {
-    //Opens connection to the database under the db variable
-    db, err = sql.Open("mysql","root:Dragon121@tcp(localhost:3306)/CadetTracker")
-    //Error handler
-    if err != nil {
-	    log.Println(err)
-    }
-    //Pings database to ensure connection is open
-    err = db.Ping()
-    //Error handler
-    if err != nil {
-        log.Println(err)
-    }
-    //Web server
-    //Defines handler functions for each webpage
-    http.HandleFunc("/", sayhelloName) // set router
-    http.HandleFunc("/input", input)
-    err = http.ListenAndServe(":9090", nil) // set listen port
-    //Error handler
-    if err != nil {
-        log.Fatal("ListenAndServe: ", err)
-    }
-    
-    
+	//Opens connection to the database under the db variable
+	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker")
+	//Error handler
+	if err != nil {
+		log.Println(err)
+	}
+	//Pings database to ensure connection is open
+	err = db.Ping()
+	//Error handler
+	if err != nil {
+		log.Println(err)
+	}
+	//Web server
+	//Defines handler functions for each webpage
+	http.HandleFunc("/", sayhelloName) // set router
+	http.HandleFunc("/cadet", progressionTracker)
+	http.HandleFunc("/dbwrite", dbWrite)
+	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("resources"))))
+	err = http.ListenAndServe(":9090", nil) // set listen port
+	//Error handler
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+
 }

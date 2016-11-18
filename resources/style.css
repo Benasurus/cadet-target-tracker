@@ -1,0 +1,28 @@
+.section {
+    width: 100%;
+    height: 80px;
+}
+
+.bar-title,.sector {
+    width: 20%;
+    display: inline-block;    
+}
+
+.sector:hover .tool-tip-text {
+    visibility: visible;
+}
+
+.sector:hover {
+    background: yellow;
+}
+
+.sector-title,.sector-bar {
+    display: block;
+}
+
+.tool-tip-text {
+    visibility: hidden;
+    z-index: 1;
+    top: -10px;
+}
+

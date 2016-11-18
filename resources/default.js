@@ -4,7 +4,7 @@ function doSetHighlight(sector){
     set.style.background = 'yellow';
     mypostrequest.open("POST", "dbwrite", true)
     mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-    mypostrequest.send(sector)
+    mypostrequest.send("sector=" + sector)
 }
 
 mypostrequest.onreadystatechange=function(){

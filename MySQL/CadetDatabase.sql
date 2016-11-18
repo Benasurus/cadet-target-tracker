@@ -1,5 +1,3 @@
-CREATE DATABASE  IF NOT EXISTS `cadettracker` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `cadettracker`;
 -- MySQL dump 10.13  Distrib 5.7.12, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cadettracker
@@ -53,10 +51,10 @@ CREATE TABLE `transactions` (
   `transactionID` int(11) NOT NULL AUTO_INCREMENT,
   `userName` varchar(64) DEFAULT NULL,
   `timeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `sector1` int(11) DEFAULT NULL,
-  `sector2` int(11) DEFAULT NULL,
-  `sector3` int(11) DEFAULT NULL,
-  `sector4` int(11) DEFAULT NULL,
+  `section1` int(11) DEFAULT NULL,
+  `section2` int(11) DEFAULT NULL,
+  `section3` int(11) DEFAULT NULL,
+  `section4` int(11) DEFAULT NULL,
   PRIMARY KEY (`transactionID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -80,4 +78,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-11-18 10:04:08
+-- Dump completed on 2016-11-18 14:04:40

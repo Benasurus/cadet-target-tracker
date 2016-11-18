@@ -37,6 +37,7 @@ import (
 	"log"
 	//"math"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -123,7 +124,7 @@ func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	return false, "", ""
 }
 
-func userData(user string, sectorData map[string]bool) (bool, map[string]bool) {
+func userData(user string, sectionData map[string]bool) (bool, map[string]bool) {
 	//QueryTransaction module is used to query transactions table for rows that match a user
 	var tID string
 	var timeStamp, userName string
@@ -133,27 +134,27 @@ func userData(user string, sectorData map[string]bool) (bool, map[string]bool) {
 	//Error handler
 	if err != nil {
 		log.Println(err)
-		return false, sectorData
+		return true, sectionData
 	}
 
 	for i := 1; i < 5; i++ {
 		for j := 1; j < 5; j++ {
 			id := "sec" + strconv.Itoa(i) + "-set" + strconv.Itoa(j)
 			if j-1 < result[i-1] {
-				sectorData[id] = true
+				sectionData[id] = true
 			} else {
-				sectorData[id] = false
+				sectionData[id] = false
 			}
 		}
 	}
 	//Prints results
 	fmt.Println(userName, timeStamp)
-	return true, sectorData
+	return false, sectionData
 }
 
 func writeTransaction(user string, group string, s1 int, s2 int, s3 int, s4 int) bool {
 	//WriteTransaction module writes a row to the transactions table under a username
-	_, err := db.Exec("INSERT INTO transactions(userName,sector1,sector2,sector3,sector4) VALUES(?,?,?,?,?)", user, s1, s2, s3, s4)
+	_, err := db.Exec("INSERT INTO transactions(userName,section1,section2,section3,section4) VALUES(?,?,?,?,?)", user, s1, s2, s3, s4)
 	//Error handler
 	if err != nil {
 		log.Println(err)
@@ -179,11 +180,11 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	//progressionBuilder module generates HTML to build each sector
 	//Defining variables
 	var countSection, countSector float64
-	var id, sectorID, sectorLabel, sectorDescription string
-	//Map variable which stores user data for each sector
-	var sectorData map[string]bool
+	var class, id, sectorID, sectorLabel, sectorDescription string
+	//Map variable which stores user data for each section
+	var sectionData map[string]bool
 
-	sectorData = make(map[string]bool)
+	sectionData = make(map[string]bool)
 	//Map variable which stores sector title
 	var sectorTitle map[string]string
 
@@ -202,9 +203,9 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	}
 	defer rows.Close()
 	//Calls user data
-	ok, sectorData := userData(user, sectorData)
-	if ok == false {
-		return "Error"
+	fail, sectionData := userData(user, sectionData)
+	if fail == true {
+		log.Println("Data Error")
 	}
 	//Scans through returned values and retrieves sector names and inserts them into the defined variables
 	for rows.Next() {
@@ -223,7 +224,12 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div>"
 		for countSector = 1; countSector < sectors; countSector++ {
 			id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSector, 'f', 0, 64)
-			html += "<div id=\"sector-" + id + "\" class=\"sector\" onclick=\"doSetHighlight('sector-" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
+			if sectionData[id] == true {
+				class = "sector-true"
+			} else {
+				class = "sector-false"
+			}
+			html += "<div id=\"sector-" + id + "\" class=" + class + " onclick=\"doSetHighlight('sector-" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
 		}
 		html += "</div>"
 	}
@@ -277,9 +283,29 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 }
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
+	var sector, section string
+	var sectorValue int
 	r.ParseForm()
-	fmt.Println(r.Form)
-
+	sector = (r.FormValue("sector"))
+	re := regexp.MustCompile("[0-9]+")
+	numberRaw := re.FindAllString(sector, -1)
+	if len(numberRaw) > 2 {
+		section = "section" + numberRaw[0] + numberRaw[1]
+		sectorValue, err = strconv.Atoi(numberRaw[2])
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+		section = "section" + numberRaw[0]
+		sectorValue, err = strconv.Atoi(numberRaw[1])
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	_, err := db.Exec("INSERT INTO transactions(userName,"+section+") VALUES(?,?)", "test", sectorValue)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func main() {

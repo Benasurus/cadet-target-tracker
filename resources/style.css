@@ -3,16 +3,20 @@
     height: 80px;
 }
 
-.bar-title,.sector {
+.bar-title,.sector-true,.sector-false {
     width: 20%;
     display: inline-block;    
 }
 
-.sector:hover .tool-tip-text {
+.sector-true {
+    background: yellow;
+}
+
+.sector-true:hover,.sector-false:hover .tool-tip-text {
     visibility: visible;
 }
 
-.sector:hover {
+.sector-false:hover {
     background: yellow;
 }
 

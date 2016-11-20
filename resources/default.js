@@ -1,24 +1,8 @@
 var mypostrequest=new ajaxRequest()
 var running = false
 
-function data(){
-    for (countSection = 1; countSection < 16; countSection++) {
-        var count = 0;
-		for (countSector = 1; countSector < 5; countSector++) {
-			id = "sector-sec" + countSection.toString() + "-set" + countSector.toString();
-			if (document.getElementById(id).className == "sector-true") {
-				count += 1;
-			}
-			
-		}
-        buffer[countSection] = count;
-	}
-    alert(buffer);
-}
-
-function modify(sector){
-    timer();
-    alert(sector);
+function cadetModify(sector){
+    cadetTimer();
     if (sector.length == 9) {
         var sectionNumber = sector.slice(3,4);
         var sectionValue = sector.slice(8,9);
@@ -38,14 +22,14 @@ function modify(sector){
     }
 }
 
-function timer() {
+function cadetTimer() {
     if (running == false){
-        setTimeout(write, 30000);
+        setTimeout(cadetWrite, 30000);
         running = true;
     }
 }
 
-function write(){
+function cadetWrite(){
     var string = "";
     for (countSection = 1; countSection < 16; countSection++) {
 		for (countSector = 4; countSector > 0; countSector--) {
@@ -60,6 +44,7 @@ function write(){
     mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     mypostrequest.send(string);
     running = false;
+    return false;
 }
 
 mypostrequest.onreadystatechange=function(){

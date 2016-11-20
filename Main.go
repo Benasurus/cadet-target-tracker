@@ -37,7 +37,6 @@ import (
 	"log"
 	//"math"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -221,7 +220,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	for countSection = 1; countSection < sections+1; countSection++ {
 		id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set0"
 		html += "<div id=\"section-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"section\">"
-		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div>"
+		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\" onclick=\"modify('" + id + "')\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div>"
 		for countSector = 1; countSector < sectors; countSector++ {
 			id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSector, 'f', 0, 64)
 			if sectionData[id] == true {
@@ -229,7 +228,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 			} else {
 				class = "sector-false"
 			}
-			html += "<div id=\"sector-" + id + "\" class=" + class + " onclick=\"doSetHighlight('sector-" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
+			html += "<div id=\"sector-" + id + "\" class=" + class + " onclick=\"modify('" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
 		}
 		html += "</div>"
 	}
@@ -252,6 +251,7 @@ func sayhelloName(w http.ResponseWriter, r *http.Request) {
 
 func progressionTracker(w http.ResponseWriter, r *http.Request) {
 	//authorised, username, group := auth(w, r)
+	userName := "TestUser"
 	authorised := true
 	//fmt.Println(username,group)
 	if !authorised {
@@ -259,9 +259,10 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
-		html := progressionBuilder(5, 15, "tesdt")
+		html := progressionBuilder(5, 15, userName)
 		pagevars := map[string]interface{}{
-			"html": template.HTML(html)}
+			"html": template.HTML(html),
+			"user": template.HTML(userName)}
 		t, err := template.ParseFiles("resources/cadet.html")
 		if err != nil {
 			log.Println(err)
@@ -283,29 +284,41 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 }
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
-	var sector, section string
-	var sectorValue int
-	r.ParseForm()
-	sector = (r.FormValue("sector"))
-	re := regexp.MustCompile("[0-9]+")
-	numberRaw := re.FindAllString(sector, -1)
-	if len(numberRaw) > 2 {
-		section = "section" + numberRaw[0] + numberRaw[1]
-		sectorValue, err = strconv.Atoi(numberRaw[2])
-		if err != nil {
-			log.Println(err)
-		}
+	var value, column string
+
+	var username string
+	username = "TEST"
+	/*var auth bool
+	auth = false
+	//Retrieves Session
+	session, err := store.Get(r, "session-name")
+	//Error handler
+	if err != nil {
+		log.Println(err)
 	} else {
-		section = "section" + numberRaw[0]
-		sectorValue, err = strconv.Atoi(numberRaw[1])
-		if err != nil {
-			log.Println(err)
+		//Authenticates the cookie
+		username, ok := session.Values["username"].(string)
+		if ok {
+			group, ok := session.Values["group"].(string)
+			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
+			if ok && group == "Cadet" {
+				auth = true
+			}
 		}
+	}*/
+	r.ParseForm()
+	for count := 0; count < 4; count++ {
+		value += "," + (r.FormValue("section" + strconv.Itoa(count+1)))
+		column += ",section" + strconv.Itoa(count+1)
 	}
-	_, err := db.Exec("INSERT INTO transactions(userName,"+section+") VALUES(?,?)", "test", sectorValue)
+	fmt.Println("INSERT INTO transactions(userName" + column + ") VALUES(\"" + username + "\"" + value + ")")
+	//if auth == true {
+	_, err := db.Exec("INSERT INTO transactions(userName" + column + ") VALUES(\"" + username + "\"" + value + ")")
+	//fmt.Println(username + "[" + group + "] Wrote to Database")
 	if err != nil {
 		log.Println(err)
 	}
+	//}
 }
 
 func main() {

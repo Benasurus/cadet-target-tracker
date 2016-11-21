@@ -220,7 +220,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	for countSection = 1; countSection < sections+1; countSection++ {
 		id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set0"
 		html += "<div id=\"section-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"section\">"
-		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\" onclick=\"cadetModify('" + id + "')\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div>"
+		html += "<div id=\"bar-title-" + strconv.FormatFloat(countSection, 'f', 0, 64) + "\" class=\"bar-title\" onclick=\"cadetModify('" + id + "')\"><div class=\"bar-title-text\"><h2>" + sectorTitle[id] + "</h2>" + sectorDesc[id] + "</div></div>"
 		for countSector = 1; countSector < sectors; countSector++ {
 			id = "sec" + strconv.FormatFloat(countSection, 'f', 0, 64) + "-set" + strconv.FormatFloat(countSector, 'f', 0, 64)
 			if sectionData[id] == true {
@@ -228,7 +228,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 			} else {
 				class = "sector-false"
 			}
-			html += "<div id=\"sector-" + id + "\" class=" + class + " onclick=\"cadetModify('" + id + "')\"><span class=\"tool-tip-text\">" + sectorDesc[id] + "</span><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "</div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
+			html += "<div id=\"sector-" + id + "\" class=" + class + " onclick=\"cadetModify('" + id + "')\"><div id=\"sector-title-" + id + "\" class=\"sector-title\">" + sectorTitle[id] + "<!-- <span class=\"tool-tip-text\">" + sectorDesc[id] + "</span> --></div><div id=\"sector-bar-" + id + "\" class=\"sector-bar\"></div></div>"
 		}
 		html += "</div>"
 	}

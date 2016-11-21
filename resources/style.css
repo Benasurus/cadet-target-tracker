@@ -1,22 +1,66 @@
+html, body, div, span, applet, object, iframe,h1, h2, h3, h4, h5, h6, p, blockquote, pre,a, abbr, acronym, address, big, cite, code,del, dfn, em, img, ins, kbd, q, s, samp,small, strike, strong, sub, sup, tt, var,b, u, i, center,dl, dt, dd, ol, ul, li,fieldset, form, label, legend,table, caption, tbody, tfoot, thead, tr, th, td,article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary,time, mark, audio, video {	margin: 0;	padding: 0;	border: 0;	font-size: 100%;	font: inherit;	vertical-align: baseline;}/* HTML5 display-role reset for older browsers */article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {	display: block;}body {	line-height: 1;}ol, ul {	list-style: none;}blockquote, q {	quotes: none;}blockquote:before, blockquote:after,q:before, q:after {	content: '';	content: none;}table {	border-collapse: collapse;	border-spacing: 0;}
+
+body {
+    font-family: "Roboto", Helvetica, sans-serif;
+    margin: 0px;
+    padding: 0px;
+    background:  #f2f2f2;
+    }
+
+h2 {
+    font-size: 120%;
+    font-weight: bold;
+    margin: 0px;
+    padding: 0px;
+}
+
 .section {
     width: 100%;
-    height: 80px;
+    height: 100px;
 }
 
 .bar-title,.sector-true,.sector-false {
-    width: 20%;
-    display: inline-block;    
+    width: 19%;
+    display: inline-block;
+    border: 0px;
+    border-right: 3px solid #444444;
+    vertical-align: top;
+    height: 100px;
 }
 
-.sector-true {
-    background: yellow;
+.bar-title {
+    background: #002F5F;
+    fill-opacity: 0.8;
+}
+
+.sector-true .sector-bar {
+    background: #b9e0f6;
+    fill-opacity: 0.6;
+}
+
+.sector-false .sector-bar {
+    fill-opacity: 0;
+}
+
+.bar-title-text,.sector-title {
+    word-wrap: break-word;
+    padding: 2px;
+}
+
+.sector-title {
+    text-align: right;
+    height: 33px;
+}
+
+.sector-bar {
+    height: 67px;
 }
 
 .sector-true:hover,.sector-false:hover .tool-tip-text {
     visibility: visible;
 }
 
-.sector-false:hover {
+.sector-false:hover,.sector-true:hover {
     background: yellow;
 }
 
@@ -28,5 +72,40 @@
     visibility: hidden;
     z-index: 1;
     top: -10px;
+
 }
 
+header {
+    position: fixed;
+    width: 100%;
+    font-size: 62px;
+    line-height: 108px;
+    height: 108px;
+    background: #C60C30;
+    color: #fff;
+    -webkit-transition: all 0.4s ease;
+    transition: all 0.4s ease;
+}
+
+header.sticky {
+    font-size: 32px;
+    height: 64px;
+    line-height: 64px;
+}
+
+.cadet-header {
+    display: inline-block;
+    height: 120px;
+}
+
+.cadet-header-title {
+    width: 80%;
+
+}
+
+.cadet-header-button {
+    width: 20%;
+    background: #fff;
+    font-size: 20%;
+
+}

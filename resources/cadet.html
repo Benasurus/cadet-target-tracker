@@ -1,17 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="/resources/default.js">
-    </script>
+    <script src="/resources/default.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/resources/style.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 </head> 
 <body>
-<h1>Are You On Target?</h1>
-<div>
-    <button type="button" onclick="cadetWrite();">Save</button>
+<div class="cadet-header">
+<header>
+    <div id="cadet-header-title">
+        <h1>Are You On Target?</h1>
+    </div>
+    <div id="cadet-header-button" class="cadet-button" onclick="cadetWrite();">
+        Save
+    </div>
+</header>
+
 </div>
+
 <div>
     {{ .html }}
 </div>
+<script>
+$(window).scroll(function() {
+    if ($(this).scrollTop() > 1){  
+        $('header').addClass("sticky");
+    }
+    else{
+        $('header').removeClass("sticky");
+    }
+});
+</script>
 </body>
 </html>

@@ -35,7 +35,7 @@ import (
 	"github.com/gorilla/sessions"
 	//"io"
 	"log"
-	//"math"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -50,6 +50,21 @@ var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32)) //cookie
 type sectorInfo struct {
 	Label       string
 	Description string
+}
+
+//Imported Round fucntion as Go lacks a built in round function
+func Round(val float64, roundOn float64, places int) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * val
+	_, div := math.Modf(digit)
+	if div >= roundOn {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	newVal = round / pow
+	return
 }
 
 func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
@@ -285,7 +300,7 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
 	var value, column string
-
+	var total, CPI float64
 	var username string
 	username = "TEST"
 	/*var auth bool
@@ -307,13 +322,21 @@ func dbWrite(w http.ResponseWriter, r *http.Request) {
 		}
 	}*/
 	r.ParseForm()
-	for count := 0; count < 4; count++ {
+	for count := 0; count < 15; count++ {
 		value += "," + (r.FormValue("section" + strconv.Itoa(count+1)))
 		column += ",section" + strconv.Itoa(count+1)
+		valueFloat, err := strconv.ParseFloat(r.FormValue("section"+strconv.Itoa(count+1)), 64)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		total += valueFloat
 	}
-	fmt.Println("INSERT INTO transactions(userName" + column + ") VALUES(\"" + username + "\"" + value + ")")
+	//Calculate Cadet Progression Index
+	CPI = total / 150
+	fmt.Println("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
 	//if auth == true {
-	_, err := db.Exec("INSERT INTO transactions(userName" + column + ") VALUES(\"" + username + "\"" + value + ")")
+	_, err := db.Exec("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
 	//fmt.Println(username + "[" + group + "] Wrote to Database")
 	if err != nil {
 		log.Println(err)

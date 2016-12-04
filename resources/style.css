@@ -94,12 +94,12 @@ header.sticky {
 }
 
 .cadet-header {
-    display: inline-block;
     height: 120px;
 }
 
 .cadet-header-title {
     width: 80%;
+    display: inline-block;
 
 }
 

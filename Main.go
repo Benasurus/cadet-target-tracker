@@ -52,7 +52,7 @@ type sectorInfo struct {
 	Description string
 }
 
-//Imported Round fucntion as Go lacks a built in round function
+//Imported Round function as Go lacks a built in round function
 func Round(val float64, roundOn float64, places int) (newVal float64) {
 	var round float64
 	pow := math.Pow(10, float64(places))

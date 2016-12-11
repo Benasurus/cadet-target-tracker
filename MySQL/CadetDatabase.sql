@@ -1,3 +1,5 @@
+CREATE DATABASE  IF NOT EXISTS `cadettracker` /*!40100 DEFAULT CHARACTER SET utf8 */;
+USE `cadettracker`;
 -- MySQL dump 10.13  Distrib 5.7.12, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cadettracker
@@ -51,12 +53,26 @@ CREATE TABLE `transactions` (
   `transactionID` int(11) NOT NULL AUTO_INCREMENT,
   `userName` varchar(64) DEFAULT NULL,
   `timeStamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `section1` int(11) DEFAULT NULL,
-  `section2` int(11) DEFAULT NULL,
-  `section3` int(11) DEFAULT NULL,
-  `section4` int(11) DEFAULT NULL,
-  PRIMARY KEY (`transactionID`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+  `section1` int(1) DEFAULT '0',
+  `section2` int(1) DEFAULT '0',
+  `section3` int(1) DEFAULT '0',
+  `section4` int(1) DEFAULT '0',
+  `section5` int(1) DEFAULT '0',
+  `section6` int(1) DEFAULT '0',
+  `section7` int(1) DEFAULT '0',
+  `section8` int(1) DEFAULT '0',
+  `section9` int(1) DEFAULT '0',
+  `section10` int(1) DEFAULT '0',
+  `section11` int(1) DEFAULT '0',
+  `section12` int(1) DEFAULT '0',
+  `section13` int(1) DEFAULT '0',
+  `section14` int(1) DEFAULT '0',
+  `section15` int(1) DEFAULT '0',
+  `cpi` float DEFAULT NULL,
+  PRIMARY KEY (`transactionID`),
+  KEY `userName` (`userName`),
+  CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`userName`) REFERENCES `userdata` (`userName`)
+) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -65,8 +81,35 @@ CREATE TABLE `transactions` (
 
 LOCK TABLES `transactions` WRITE;
 /*!40000 ALTER TABLE `transactions` DISABLE KEYS */;
-INSERT INTO `transactions` VALUES (1,'tesdt','2016-08-21 18:35:12',3,0,0,0),(2,'cookie','2016-08-22 14:02:28',1,0,0,0);
 /*!40000 ALTER TABLE `transactions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `userdata`
+--
+
+DROP TABLE IF EXISTS `userdata`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `userdata` (
+  `userName` varchar(64) NOT NULL,
+  `firstName` varchar(64) DEFAULT NULL,
+  `surnameName` varchar(64) DEFAULT NULL,
+  `age` int(2) DEFAULT NULL,
+  `dateOfEnrollment` date DEFAULT NULL,
+  `gender` varchar(6) DEFAULT NULL,
+  `flight` int(1) DEFAULT NULL,
+  PRIMARY KEY (`userName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `userdata`
+--
+
+LOCK TABLES `userdata` WRITE;
+/*!40000 ALTER TABLE `userdata` DISABLE KEYS */;
+/*!40000 ALTER TABLE `userdata` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -78,4 +121,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-11-18 14:04:40
+-- Dump completed on 2016-12-11 15:34:52

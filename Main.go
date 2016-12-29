@@ -20,6 +20,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //section = sec
 //5 sectors per section (0-4)
 //15 sections (1-15)
+/*
+Section Names:
+	Section 01 - Drill
+	Section 02 - Radio
+	Section 03 - Flying
+	Section 04 - Gliding
+	Section 05 - Fieldcraft
+	Section 06 - Classifications
+	Section 07 - Sports
+	Section 08 - Adventurous Training [AT]
+	Section 09 - First Aid
+	Section 10 - Leadership
+	Section 11 - Duke of Edinburgh [DofE]
+	Section 12 - Community Engagement
+	Section 13 - Shooting
+	Section 14 - Music
+	Section 15 - Camps
+*/
 
 //Package definition
 package main
@@ -39,6 +57,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //Defining global variables
@@ -52,7 +71,7 @@ type sectorInfo struct {
 	Description string
 }
 
-//Imported Round function as Go lacks a built in round function
+//Round function as Go lacks a built in round function
 func Round(val float64, roundOn float64, places int) (newVal float64) {
 	var round float64
 	pow := math.Pow(10, float64(places))
@@ -250,6 +269,40 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	return html
 }
 
+func dataCalculation() {
+	var data [12]float64
+	var user string
+	t := time.Now()
+	year := t.Year()
+	month := int(t.Month())
+	for i := 1; i < 13; i++ {
+		count := 0
+		cpiTotal := 0
+		cpi := 0
+		rows, err := db.Query("SELECT cpi,userName FROM transactions WHERE MONTH(timeStamp) = ? AND YEAR(timeStamp) = ? GROUP BY userName ORDER BY timeStamp DESC", month, year)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			err := rows.Scan(&cpi, &user)
+			if err != nil {
+				log.Fatal(err)
+			}
+			cpiTotal += cpi
+			count++
+		}
+		cpiAverage := float64(cpiTotal) / float64(count)
+		month--
+		if month == 0 {
+			year--
+			month = 12
+		}
+		data[i-1] = cpiAverage
+	}
+	fmt.Println(data[0])
+}
+
 func sayhelloName(w http.ResponseWriter, r *http.Request) {
 	//Webpage handler for the root domain
 	r.ParseForm()       // parse arguments, you have to call this by yourself
@@ -296,6 +349,10 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 		//   log.Println(err)
 		//}
 	}
+}
+
+func adminPage(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
@@ -357,10 +414,12 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	dataCalculation()
 	//Web server
 	//Defines handler functions for each webpage
 	http.HandleFunc("/", sayhelloName) // set router
 	http.HandleFunc("/cadet", progressionTracker)
+	http.HandleFunc("/staff", adminPage)
 	http.HandleFunc("/dbwrite", dbWrite)
 	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("resources"))))
 	err = http.ListenAndServe(":9090", nil) // set listen port

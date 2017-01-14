@@ -65,12 +65,6 @@ var db *sql.DB                                                          //databa
 var err error                                                           //error variable
 var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32)) //cookie store variable
 
-//defining a structure to store sectorLabel and sectorDescription in a map variable
-type sectorInfo struct {
-	Label       string
-	Description string
-}
-
 //Round function as Go lacks a built in round function
 func Round(val float64, roundOn float64, places int) (newVal float64) {
 	var round float64
@@ -161,17 +155,18 @@ func userData(user string, sectionData map[string]bool) (bool, map[string]bool) 
 	//QueryTransaction module is used to query transactions table for rows that match a user
 	var tID string
 	var timeStamp, userName string
-	var result [4]int
+	var result [15]int
 	//Queries databse using SQL calling all rows which match the desired username & scans through returned row
-	err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp, &userName, &result[0], &result[1], &result[2], &result[3])
+	err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp, &userName, &result[0], &result[1],
+		&result[2], &result[3], &result[4], &result[5], &result[6], &result[7], &result[8], &result[9], &result[10], &result[11], &result[12], &result[13], &result[14])
 	//Error handler
 	if err != nil {
 		log.Println(err)
 		return true, sectionData
 	}
 
-	for i := 1; i < 5; i++ {
-		for j := 1; j < 5; j++ {
+	for i := 1; i < 16; i++ {
+		for j := 1; j < 16; j++ {
 			id := "sec" + strconv.Itoa(i) + "-set" + strconv.Itoa(j)
 			if j-1 < result[i-1] {
 				sectionData[id] = true
@@ -270,37 +265,127 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 }
 
 func dataCalculation() {
-	var data [12]float64
-	var user string
+	var overall, flight, sex, sector string
+	var month, year, monthChange, yearChange int
 	t := time.Now()
-	year := t.Year()
-	month := int(t.Month())
+	year = t.Year()
+	month = int(t.Month())
+	yearChange = year
+	if month == 12 {
+		monthChange = 1
+	} else {
+		monthChange = month + 1
+	}
+	sector = sectorCalculation(month, year)
 	for i := 1; i < 13; i++ {
-		count := 0
-		cpiTotal := 0
-		cpi := 0
-		rows, err := db.Query("SELECT cpi,userName FROM transactions WHERE MONTH(timeStamp) = ? AND YEAR(timeStamp) = ? GROUP BY userName ORDER BY timeStamp DESC", month, year)
+		var count, countA, countB, countM, countF float64
+		var cpiTotal, cpiATotal, cpiBTotal, cpiMTotal, cpiFTotal float64
+		var cpi, cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv float64
+		count = 0
+		cpiTotal = 0
+		cpi = 0
+		rows, err := db.Query("SELECT t1.cpi,t3.flight,t3.sex FROM transactions t1 INNER JOIN userdata AS t3 ON t1.userName=t3.userName WHERE t1.timeStamp=(SELECT MAX(t2.timeStamp) FROM transactions t2 WHERE timeStamp < '" + strconv.Itoa(yearChange) + "-" + strconv.Itoa(monthChange) + "-01' AND t2.userName = t1.userName)")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
-			err := rows.Scan(&cpi, &user)
+			var flight, sex string
+			err := rows.Scan(&cpi, &flight, &sex)
 			if err != nil {
 				log.Fatal(err)
 			}
 			cpiTotal += cpi
+			if flight == "A" {
+				cpiATotal += cpi
+				countA++
+			} else if flight == "B" {
+				cpiBTotal += cpi
+				countB++
+			}
+			if sex == "M" {
+				cpiMTotal += cpi
+				countM++
+			} else if sex == "F" {
+				cpiFTotal += cpi
+				countF++
+			}
 			count++
+			fmt.Println(strconv.Itoa(month-1), " - ", cpi)
 		}
-		cpiAverage := float64(cpiTotal) / float64(count)
+		if count > 0 {
+			cpiAv = cpiTotal / count
+			cpiAAv = cpiATotal / countA
+			cpiBAv = cpiBTotal / countB
+			cpiMAv = cpiMTotal / countM
+			cpiFAv = cpiFTotal / countF
+		} else {
+			cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv = 0, 0, 0, 0, 0
+		}
+		fmt.Println(cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv)
+		overall = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAv, 'f', 4, 64) + "]," + overall
+		flight = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiBAv, 'f', 4, 64) + "]," + flight
+		sex = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiMAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiFAv, 'f', 4, 64) + "]," + sex
 		month--
 		if month == 0 {
 			year--
 			month = 12
 		}
-		data[i-1] = cpiAverage
+		monthChange--
+		if monthChange == 0 {
+			yearChange--
+			monthChange = 12
+		}
 	}
-	fmt.Println(data[0])
+	overall = "data.addRows([" + overall + "]);"
+	flight = "data.addRows([" + flight + "]);"
+	sex = "data.addRows([" + sex + "]);"
+	fmt.Println(overall)
+	fmt.Println(flight)
+	fmt.Println(sex)
+	fmt.Println(sector)
+}
+
+func sectorCalculation(month, year int) string {
+	var count, cpi, ID, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15 float64
+	var ts1, ts2, ts3, ts4, ts5, ts6, ts7, ts8, ts9, ts10, ts11, ts12, ts13, ts14, ts15 float64
+	var as1, as2, as3, as4, as5, as6, as7, as8, as9, as10, as11, as12, as13, as14, as15 float64
+	var user, time, sector string
+	month++
+	if month == 12 {
+		year++
+		month = 1
+	}
+	rows, err := db.Query("SELECT t1.* FROM transactions t1 WHERE t1.timeStamp=(SELECT MAX(t2.timeStamp) FROM transactions t2 WHERE timeStamp < '" + strconv.Itoa(year) + "-" + strconv.Itoa(month) + "-01' AND t2.userName = t1.userName)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&ID, &user, &time, &s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &s9, &s10, &s11, &s12, &s13, &s14, &s15, &cpi)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ts1, ts2, ts3, ts4, ts5, ts6, ts7, ts8, ts9, ts10, ts11, ts12, ts13, ts14, ts15 = s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15
+		count++
+	}
+	as1 = ts1 / count
+	as2 = ts2 / count
+	as3 = ts3 / count
+	as4 = ts4 / count
+	as5 = ts5 / count
+	as6 = ts6 / count
+	as7 = ts7 / count
+	as8 = ts8 / count
+	as9 = ts9 / count
+	as10 = ts10 / count
+	as11 = ts11 / count
+	as12 = ts12 / count
+	as13 = ts13 / count
+	as14 = ts14 / count
+	as15 = ts15 / count
+	sector = "data.addRows([['Drill'," + strconv.FormatFloat(as1, 'f', 4, 64) + "],['Radio'," + strconv.FormatFloat(as2, 'f', 4, 64) + "],['Flying'," + strconv.FormatFloat(as3, 'f', 4, 64) + "],['Gliding'," + strconv.FormatFloat(as4, 'f', 4, 64) + "],['Fieldcraft'," + strconv.FormatFloat(as5, 'f', 4, 64) + "],['Classifications'," + strconv.FormatFloat(as6, 'f', 4, 64) + "],['Sports'," + strconv.FormatFloat(as7, 'f', 4, 64) + "],['Adventurous Training'," + strconv.FormatFloat(as8, 'f', 4, 64) + "],['First Aid'," + strconv.FormatFloat(as9, 'f', 4, 64) + "],['Leadership'," + strconv.FormatFloat(as10, 'f', 4, 64) + "],['DofE'," + strconv.FormatFloat(as11, 'f', 4, 64) + "],['Community Engagement'," + strconv.FormatFloat(as12, 'f', 4, 64) + "],['Shooting'," + strconv.FormatFloat(as13, 'f', 4, 64) + "],['Music'," + strconv.FormatFloat(as14, 'f', 4, 64) + "],['Camps'," + strconv.FormatFloat(as15, 'f', 4, 64) + "]]);"
+	return sector
 }
 
 func sayhelloName(w http.ResponseWriter, r *http.Request) {

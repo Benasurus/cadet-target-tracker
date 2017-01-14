@@ -1,5 +1,3 @@
-CREATE DATABASE  IF NOT EXISTS `cadettracker` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `cadettracker`;
 -- MySQL dump 10.13  Distrib 5.7.12, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cadettracker
@@ -72,7 +70,7 @@ CREATE TABLE `transactions` (
   PRIMARY KEY (`transactionID`),
   KEY `userName` (`userName`),
   CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`userName`) REFERENCES `userdata` (`userName`)
-) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -81,6 +79,7 @@ CREATE TABLE `transactions` (
 
 LOCK TABLES `transactions` WRITE;
 /*!40000 ALTER TABLE `transactions` DISABLE KEYS */;
+INSERT INTO `transactions` VALUES (1,'jeff','2016-11-16 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,27),(2,'dave','2016-11-18 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38),(3,'dave','2016-12-01 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40),(4,'dave','2016-12-11 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43),(5,'bob','2016-12-11 00:00:05',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38);
 /*!40000 ALTER TABLE `transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -95,10 +94,10 @@ CREATE TABLE `userdata` (
   `userName` varchar(64) NOT NULL,
   `firstName` varchar(64) DEFAULT NULL,
   `surnameName` varchar(64) DEFAULT NULL,
-  `age` int(2) DEFAULT NULL,
+  `dateOfBirth` date DEFAULT NULL,
   `dateOfEnrollment` date DEFAULT NULL,
-  `gender` varchar(6) DEFAULT NULL,
-  `flight` int(1) DEFAULT NULL,
+  `sex` char(1) DEFAULT NULL,
+  `flight` char(1) DEFAULT NULL,
   PRIMARY KEY (`userName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -109,6 +108,7 @@ CREATE TABLE `userdata` (
 
 LOCK TABLES `userdata` WRITE;
 /*!40000 ALTER TABLE `userdata` DISABLE KEYS */;
+INSERT INTO `userdata` VALUES ('bob','bob','',NULL,NULL,'M','A'),('dave','dave','',NULL,NULL,'M','B'),('jeff','jeff','',NULL,NULL,'M','C');
 /*!40000 ALTER TABLE `userdata` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -121,4 +121,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-12-11 15:34:52
+-- Dump completed on 2017-01-14 17:18:12

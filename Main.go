@@ -264,7 +264,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	return html
 }
 
-func dataCalculation() {
+func dataCalculation() (string, string, string, string) {
 	var overall, flight, sex, sector string
 	var month, year, monthChange, yearChange int
 	t := time.Now()
@@ -311,21 +311,28 @@ func dataCalculation() {
 				countF++
 			}
 			count++
-			fmt.Println(strconv.Itoa(month-1), " - ", cpi)
 		}
+		cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv = 0, 0, 0, 0, 0
 		if count > 0 {
 			cpiAv = cpiTotal / count
-			cpiAAv = cpiATotal / countA
-			cpiBAv = cpiBTotal / countB
-			cpiMAv = cpiMTotal / countM
-			cpiFAv = cpiFTotal / countF
-		} else {
-			cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv = 0, 0, 0, 0, 0
 		}
+		if countA > 0 {
+			cpiAAv = cpiATotal / countA
+		}
+		if countB > 0 {
+			cpiBAv = cpiBTotal / countB
+		}
+		if countM > 0 {
+			cpiMAv = cpiMTotal / countM
+		}
+		if countA > 0 {
+			cpiFAv = cpiFTotal / countF
+		}
+		cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv = 0, 0, 0, 0, 0
 		fmt.Println(cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv)
-		overall = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAv, 'f', 4, 64) + "]," + overall
-		flight = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiBAv, 'f', 4, 64) + "]," + flight
-		sex = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiMAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiFAv, 'f', 4, 64) + "]," + sex
+		overall = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAv, 'f', 4, 64) + "],\n" + overall
+		flight = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiBAv, 'f', 4, 64) + "],\n" + flight
+		sex = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiMAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiFAv, 'f', 4, 64) + "],\n" + sex
 		month--
 		if month == 0 {
 			year--
@@ -337,13 +344,14 @@ func dataCalculation() {
 			monthChange = 12
 		}
 	}
-	overall = "data.addRows([" + overall + "]);"
-	flight = "data.addRows([" + flight + "]);"
-	sex = "data.addRows([" + sex + "]);"
-	fmt.Println(overall)
-	fmt.Println(flight)
-	fmt.Println(sex)
-	fmt.Println(sector)
+	overall = "data.addRows([\n" + overall + "]);"
+	flight = "data.addRows([\n" + flight + "]);"
+	sex = "data.addRows([\n" + sex + "]);"
+	//fmt.Println(overall)
+	//fmt.Println(flight)
+	//fmt.Println(sex)
+	//fmt.Println(sector)
+	return overall, flight, sex, sector
 }
 
 func sectorCalculation(month, year int) string {
@@ -436,8 +444,21 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func adminPage(w http.ResponseWriter, r *http.Request) {
-
+func staffPage(w http.ResponseWriter, r *http.Request) {
+	overall, flight, sex, _ := dataCalculation()
+	pagevars := map[string]interface{}{
+		"overall": template.JS(overall),
+		"flight":  template.JS(flight),
+		"sex":     template.JS(sex)}
+	t, err := template.ParseFiles("resources/staff.html")
+	if err != nil {
+		log.Println(err)
+	} else {
+		err = t.Execute(w, pagevars)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
@@ -499,12 +520,11 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	dataCalculation()
 	//Web server
 	//Defines handler functions for each webpage
 	http.HandleFunc("/", sayhelloName) // set router
 	http.HandleFunc("/cadet", progressionTracker)
-	http.HandleFunc("/staff", adminPage)
+	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)
 	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("resources"))))
 	err = http.ListenAndServe(":9090", nil) // set listen port

@@ -325,10 +325,9 @@ func dataCalculation() (string, string, string, string) {
 		if countM > 0 {
 			cpiMAv = cpiMTotal / countM
 		}
-		if countA > 0 {
+		if countF > 0 {
 			cpiFAv = cpiFTotal / countF
 		}
-		cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv = 0, 0, 0, 0, 0
 		fmt.Println(cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv)
 		overall = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAv, 'f', 4, 64) + "],\n" + overall
 		flight = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiBAv, 'f', 4, 64) + "],\n" + flight

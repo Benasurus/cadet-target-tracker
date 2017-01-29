@@ -391,7 +391,7 @@ func sectorCalculation(month, year int) string {
 	as13 = ts13 / count
 	as14 = ts14 / count
 	as15 = ts15 / count
-	sector = "data.addRows([['Drill'," + strconv.FormatFloat(as1, 'f', 4, 64) + "],['Radio'," + strconv.FormatFloat(as2, 'f', 4, 64) + "],['Flying'," + strconv.FormatFloat(as3, 'f', 4, 64) + "],['Gliding'," + strconv.FormatFloat(as4, 'f', 4, 64) + "],['Fieldcraft'," + strconv.FormatFloat(as5, 'f', 4, 64) + "],['Classifications'," + strconv.FormatFloat(as6, 'f', 4, 64) + "],['Sports'," + strconv.FormatFloat(as7, 'f', 4, 64) + "],['Adventurous Training'," + strconv.FormatFloat(as8, 'f', 4, 64) + "],['First Aid'," + strconv.FormatFloat(as9, 'f', 4, 64) + "],['Leadership'," + strconv.FormatFloat(as10, 'f', 4, 64) + "],['DofE'," + strconv.FormatFloat(as11, 'f', 4, 64) + "],['Community Engagement'," + strconv.FormatFloat(as12, 'f', 4, 64) + "],['Shooting'," + strconv.FormatFloat(as13, 'f', 4, 64) + "],['Music'," + strconv.FormatFloat(as14, 'f', 4, 64) + "],['Camps'," + strconv.FormatFloat(as15, 'f', 4, 64) + "]]);"
+	sector = "data.addRows([\n['Drill'," + strconv.FormatFloat(as1, 'f', 4, 64) + "],\n['Radio'," + strconv.FormatFloat(as2, 'f', 4, 64) + "],\n['Flying'," + strconv.FormatFloat(as3, 'f', 4, 64) + "],\n['Gliding'," + strconv.FormatFloat(as4, 'f', 4, 64) + "],\n['Fieldcraft'," + strconv.FormatFloat(as5, 'f', 4, 64) + "],\n['Classifications'," + strconv.FormatFloat(as6, 'f', 4, 64) + "],\n['Sports'," + strconv.FormatFloat(as7, 'f', 4, 64) + "],\n['Adventurous Training'," + strconv.FormatFloat(as8, 'f', 4, 64) + "],\n['First Aid'," + strconv.FormatFloat(as9, 'f', 4, 64) + "],\n['Leadership'," + strconv.FormatFloat(as10, 'f', 4, 64) + "],\n['DofE'," + strconv.FormatFloat(as11, 'f', 4, 64) + "],\n['Community Engagement'," + strconv.FormatFloat(as12, 'f', 4, 64) + "],\n['Shooting'," + strconv.FormatFloat(as13, 'f', 4, 64) + "],\n['Music'," + strconv.FormatFloat(as14, 'f', 4, 64) + "],\n['Camps'," + strconv.FormatFloat(as15, 'f', 4, 64) + "]\n]);"
 	return sector
 }
 
@@ -444,11 +444,12 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 }
 
 func staffPage(w http.ResponseWriter, r *http.Request) {
-	overall, flight, sex, _ := dataCalculation()
+	overall, flight, sex, sectors := dataCalculation()
 	pagevars := map[string]interface{}{
 		"overall": template.JS(overall),
 		"flight":  template.JS(flight),
-		"sex":     template.JS(sex)}
+		"sex":     template.JS(sex),
+		"sectors": template.JS(sectors)}
 	t, err := template.ParseFiles("resources/staff.html")
 	if err != nil {
 		log.Println(err)

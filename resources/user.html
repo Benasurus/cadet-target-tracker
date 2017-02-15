@@ -1,0 +1,27 @@
+<html>
+<head>
+    <script type="text/javascript" src="/resources/user.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/resources/user.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+</head>
+<body>
+    <header id="user-header-title" class="user-header">
+        <h1>User Management</h1>
+    </header>
+    <div id="list-panel" class="panel">
+        <table id="user-list" class="list">
+        <tr>
+                <th>Surname</th>
+                <th>Forename</th>
+                <th>Flight</th>
+                <th>Age</th>
+                <th>Username</th>
+        </tr>
+        {{ .table }}
+        </table>
+    </div>
+    <div id="user-panel" class="panel">
+    </div>    
+</body>
+</html>

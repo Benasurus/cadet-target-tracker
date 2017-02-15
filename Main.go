@@ -47,17 +47,16 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
-	//"io"
 	"log"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+	"github.com/bearbin/go-age"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 )
 
 //Defining global variables
@@ -149,6 +148,19 @@ func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	w.Header().Set("WWW-Authenticate", "Basic realm=\"localhost\"")
 
 	return false, "", ""
+}
+
+func userPresent(user string) bool {
+	var result string
+	err := db.QueryRow("SELECT userName FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&result)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	if result == "user" {
+		return true
+	}
+	return false
 }
 
 func userData(user string, sectionData map[string]bool) (bool, map[string]bool) {
@@ -395,18 +407,27 @@ func sectorCalculation(month, year int) string {
 	return sector
 }
 
-func sayhelloName(w http.ResponseWriter, r *http.Request) {
-	//Webpage handler for the root domain
-	r.ParseForm()       // parse arguments, you have to call this by yourself
-	fmt.Println(r.Form) // print form information in server side
-	fmt.Println("path", r.URL.Path)
-	fmt.Println("scheme", r.URL.Scheme)
-	fmt.Println(r.Form["url_long"])
-	for k, v := range r.Form {
-		fmt.Println("key:", k)
-		fmt.Println("val:", strings.Join(v, ""))
+func tableBuilder() string {
+	var surname, forename, flight, table, userName string
+	var DOB time.Time
+	rows, err := db.Query("SELECT lastName, firstName, flight, dateOfBirth, userName FROM userdata")
+	if err != nil {
+		log.Fatal(err)
 	}
-	fmt.Fprintf(w, "Hello Ben!") // send data to client side
+	fmt.Println(rows)
+	for rows.Next() {
+		var newRow string
+		var userAge int
+		err := rows.Scan(&surname, &forename, &flight, &DOB, &userName)
+		if err != nil {
+			log.Fatal(err)
+			return "Error"
+		}
+		userAge = age.Age(DOB)
+		newRow = "<tr>\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
+		table += newRow
+	}
+	return table
 }
 
 func progressionTracker(w http.ResponseWriter, r *http.Request) {
@@ -451,6 +472,21 @@ func staffPage(w http.ResponseWriter, r *http.Request) {
 		"sex":     template.JS(sex),
 		"sectors": template.JS(sectors)}
 	t, err := template.ParseFiles("resources/staff.html")
+	if err != nil {
+		log.Println(err)
+	} else {
+		err = t.Execute(w, pagevars)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func userManagement(w http.ResponseWriter, r *http.Request) {
+	table := tableBuilder()
+	pagevars := map[string]interface{}{
+		"table": template.HTML(table)}
+	t, err := template.ParseFiles("resources/user.html")
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -509,7 +545,7 @@ func dbWrite(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	//Opens connection to the database under the db variable
-	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker")
+	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker?parseTime=true")
 	//Error handler
 	if err != nil {
 		log.Println(err)
@@ -522,10 +558,10 @@ func main() {
 	}
 	//Web server
 	//Defines handler functions for each webpage
-	http.HandleFunc("/", sayhelloName) // set router
 	http.HandleFunc("/cadet", progressionTracker)
 	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)
+	http.HandleFunc("/user", userManagement)
 	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("resources"))))
 	err = http.ListenAndServe(":9090", nil) // set listen port
 	//Error handler

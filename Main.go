@@ -50,9 +50,11 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/bearbin/go-age"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/securecookie"
@@ -150,14 +152,15 @@ func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	return false, "", ""
 }
 
-func userPresent(user string) bool {
+func userPresent(username string) bool {
+	//Checks if user is present in the user database
 	var result string
-	err := db.QueryRow("SELECT userName FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&result)
+	err := db.QueryRow("SELECT userName FROM userdata WHERE UserName=?", username).Scan(&result)
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-	if result == "user" {
+	if result == username {
 		return true
 	}
 	return false
@@ -205,8 +208,15 @@ func writeTransaction(user string, group string, s1 int, s2 int, s3 int, s4 int)
 }
 
 func deleteUser(userDel string) bool {
-	//Deletes all rows where the username matches
-	_, err := db.Exec("DELETE FROM transactions WHERE userName=?", userDel)
+	//Deletes all rows where the username matches in transactions
+	_, err = db.Exec("DELETE FROM transactions WHERE userName=?", userDel)
+	//Error Handler
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	//Deletes all rows where the username matches in userdata
+	_, err = db.Exec("DELETE FROM userdata WHERE userName=?", userDel)
 	//Error Handler
 	if err != nil {
 		log.Println(err)
@@ -277,9 +287,12 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 }
 
 func dataCalculation() (string, string, string, string) {
+	//Declaring variables
 	var overall, flight, sex, sector string
 	var month, year, monthChange, yearChange int
+	//Retrieve current time
 	t := time.Now()
+	//Calculate current year and month
 	year = t.Year()
 	month = int(t.Month())
 	yearChange = year
@@ -340,7 +353,6 @@ func dataCalculation() (string, string, string, string) {
 		if countF > 0 {
 			cpiFAv = cpiFTotal / countF
 		}
-		fmt.Println(cpiAv, cpiAAv, cpiBAv, cpiMAv, cpiFAv)
 		overall = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAv, 'f', 4, 64) + "],\n" + overall
 		flight = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiAAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiBAv, 'f', 4, 64) + "],\n" + flight
 		sex = "[new Date(" + strconv.Itoa(year) + "," + strconv.Itoa(month-1) + ", 1)," + strconv.FormatFloat(cpiMAv, 'f', 4, 64) + "," + strconv.FormatFloat(cpiFAv, 'f', 4, 64) + "],\n" + sex
@@ -358,10 +370,6 @@ func dataCalculation() (string, string, string, string) {
 	overall = "data.addRows([\n" + overall + "]);"
 	flight = "data.addRows([\n" + flight + "]);"
 	sex = "data.addRows([\n" + sex + "]);"
-	//fmt.Println(overall)
-	//fmt.Println(flight)
-	//fmt.Println(sex)
-	//fmt.Println(sector)
 	return overall, flight, sex, sector
 }
 
@@ -407,6 +415,18 @@ func sectorCalculation(month, year int) string {
 	return sector
 }
 
+func sectorChart(user string) (string, int) {
+	var s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15 float64
+	var cpi int
+	var sector string
+	err := db.QueryRow("SELECT section1, section2, section3, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, cpi FROM transactions WHERE userName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &s9, &s10, &s11, &s12, &s13, &s14, &s15, &cpi)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sector = "data.addRows([\n['Drill'," + strconv.FormatFloat(s1, 'f', 4, 64) + "],\n['Radio'," + strconv.FormatFloat(s2, 'f', 4, 64) + "],\n['Flying'," + strconv.FormatFloat(s3, 'f', 4, 64) + "],\n['Gliding'," + strconv.FormatFloat(s4, 'f', 4, 64) + "],\n['Fieldcraft'," + strconv.FormatFloat(s5, 'f', 4, 64) + "],\n['Classifications'," + strconv.FormatFloat(s6, 'f', 4, 64) + "],\n['Sports'," + strconv.FormatFloat(s7, 'f', 4, 64) + "],\n['Adventurous Training'," + strconv.FormatFloat(s8, 'f', 4, 64) + "],\n['First Aid'," + strconv.FormatFloat(s9, 'f', 4, 64) + "],\n['Leadership'," + strconv.FormatFloat(s10, 'f', 4, 64) + "],\n['DofE'," + strconv.FormatFloat(s11, 'f', 4, 64) + "],\n['Community Engagement'," + strconv.FormatFloat(s12, 'f', 4, 64) + "],\n['Shooting'," + strconv.FormatFloat(s13, 'f', 4, 64) + "],\n['Music'," + strconv.FormatFloat(s14, 'f', 4, 64) + "],\n['Camps'," + strconv.FormatFloat(s15, 'f', 4, 64) + "]\n]);"
+	return sector, cpi
+}
+
 func tableBuilder() string {
 	var surname, forename, flight, table, userName string
 	var DOB time.Time
@@ -414,7 +434,7 @@ func tableBuilder() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(rows)
+	rowcount := 0
 	for rows.Next() {
 		var newRow string
 		var userAge int
@@ -424,8 +444,9 @@ func tableBuilder() string {
 			return "Error"
 		}
 		userAge = age.Age(DOB)
-		newRow = "<tr>\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
+		newRow = "<tr id=\"user-row-" + strconv.Itoa(rowcount) + "\" onclick=\"loadData('" + userName + "')\">\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
 		table += newRow
+		rowcount++
 	}
 	return table
 }
@@ -543,6 +564,69 @@ func dbWrite(w http.ResponseWriter, r *http.Request) {
 	//}
 }
 
+func userLoad(w http.ResponseWriter, r *http.Request) {
+	var query url.Values
+	var userName, forename, surname, sex, flight, sector string
+	var userAge, cadetAge, cpi int
+	var DOB, DOE time.Time
+	query = r.URL.Query()
+	userName = query.Get("username")
+	err := db.QueryRow("SELECT * FROM userdata WHERE userName=?", userName).Scan(&userName, &forename, &surname, &DOB, &DOE, &sex, &flight)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if sex == "F" {
+		sex = "<input type=\"radio\" name=\"gender\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" value=\"female\" checked> Female<br>"
+	} else {
+		sex = "<input type=\"radio\" name=\"gender\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" value=\"female\"> Female<br>"
+	}
+	if flight == "A" {
+		flight = "<input type=\"radio\" name=\"flight\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" value=\"B\"> B<br>"
+	} else {
+		flight = "<input type=\"radio\" name=\"flight\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" value=\"B\" checked> B<br>"
+	}
+	userAge = age.Age(DOB)
+	cadetAge = age.Age(DOE)
+	sector, cpi = sectorChart(userName)
+	pagevars := map[string]interface{}{
+		"forename": template.HTML(forename),
+		"surname":  template.HTML(surname),
+		"flight":   template.HTML(flight),
+		"age":      template.HTML(strconv.Itoa(userAge)),
+		"dob":      template.HTML(strings.TrimSuffix(time.Time.String(DOB), " 00:00:00 +0000 UTC")),
+		"cadet":    template.HTML(strconv.Itoa(cadetAge)),
+		"doe":      template.HTML(strings.TrimSuffix(time.Time.String(DOE), " 00:00:00 +0000 UTC")),
+		"sex":      template.HTML(sex),
+		"username": template.HTML(userName),
+		"cpi":      template.HTML(strconv.Itoa(cpi)),
+		"sector":   template.JS(sector)}
+	t, err := template.ParseFiles("resources/userLoad.html")
+	if err != nil {
+		log.Println(err)
+	} else {
+		err = t.Execute(w, pagevars)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func userModify(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func userAdd(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func userRemove(w http.ResponseWriter, r *http.Request) {
+	var query url.Values
+	var userName string
+	query = r.URL.Query()
+	userName = query.Get("username")
+	deleteUser(userName)
+}
+
 func main() {
 	//Opens connection to the database under the db variable
 	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker?parseTime=true")
@@ -562,6 +646,10 @@ func main() {
 	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)
 	http.HandleFunc("/user", userManagement)
+	http.HandleFunc("/load", userLoad)
+	http.HandleFunc("/modify", userModify)
+	http.HandleFunc("/add", userAdd)
+	http.HandleFunc("/remove", userRemove)
 	http.Handle("/resources/", http.StripPrefix("/resources", http.FileServer(http.Dir("resources"))))
 	err = http.ListenAndServe(":9090", nil) // set listen port
 	//Error handler

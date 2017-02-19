@@ -21,6 +21,6 @@ panel {
     height: 600px;
 }
 
-list {
+.td {
      text-transform: capitalize;
 }

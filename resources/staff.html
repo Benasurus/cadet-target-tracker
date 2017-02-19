@@ -1,7 +1,7 @@
 <html>
 <head>
    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript"> 
+   <script type="text/javascript"> 
         google.charts.load('current', {'packages':['corechart','line','bar']});
         google.charts.setOnLoadCallback(drawCharts);
         google.charts.setOnLoadCallback(drawSectorChart);
@@ -93,7 +93,8 @@
                 },
                 vAxis: {
                 title: 'Progression'
-                }
+                },
+                legend: {position: 'none'},
             };
 
             var chart = new google.visualization.ColumnChart(

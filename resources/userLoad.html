@@ -1,0 +1,52 @@
+<script type="text\javascript" id="user-chart-draw-source">
+    function drawSectorChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Sector');
+        data.addColumn('number', 'Progression');
+
+        {{ .sector }}
+
+        var options = {
+            title: 'Overall Sector Progression',
+            hAxis: {
+            title: 'Sectors'
+            },
+            vAxis: {
+            title: 'Progression'
+            },
+            legend: {position: 'none'},
+        };
+
+        var chart = new google.visualization.ColumnChart(
+            document.getElementById('sector-chart'));
+
+        chart.draw(data, options);
+    }
+</script>
+
+<form>
+        Forename:<br>
+        <input type="text" name="forename" value="{{ .forename }}"><br>
+        Surname:<br>
+        <input type="text" name="surname" value="{{ .surname }}"><br>
+        Flight:<br>
+        {{ .flight }}
+        Cadet Progression Index:<br>
+        {{ .cpi }}<br>
+        Age:<br>
+        {{ .age }} Years Old<br>
+        Date of Birth:<br>
+        <input type="text" name="dob" value="{{ .dob }}"><br>
+        Cadet Career Length:<br>
+        {{ .cadet }} Years<br>
+        Date of Enrolment:<br>
+        <input type="text" name="doe" value="{{ .doe }}"><br>
+        Gender:<br>
+        {{ .sex }}
+        Username:<br>
+        <input type="text" name="username" value="{{ .username }}"><br>
+        <input type="submit" value="Save" onclick="saveData({{ .username }})">
+</form >
+<button type="button" onclick="deleteUser({{ .username }})">Delete User<button>
+<div id="sector-chart" class="chart">
+</div>

@@ -14,7 +14,7 @@ function loadData(userName) {
             drawSectorChart();
         }
     };
-    xhttp.open("GET", "http://localhost:9090/load?username="+userName, true);
+    xhttp.open("GET", "/load?username="+userName, true);
     xhttp.send();
 }
 
@@ -25,6 +25,7 @@ function saveData() {
     var dob = "";
     var doe = "";
     var gender = "";
+    var username = "";
     //var string = "";
     forename = document.getElementById("forename").value;
     surname = document.getElementById("surname").value;
@@ -41,15 +42,14 @@ function saveData() {
         gender = "false";
     }
     username = document.getElementById("username").value;
-    //string = "forename=" + forename + "&surname=" + surname + "&flight=" + flight + "&dob=" + dob  + "&doe=" + doe  + "&gender=" + gender + "&username" + username + "&";
-    alert(forename + surname + flight + dob + doe + gender);
-    //mypostrequest.open("POST", "dbwrite", true);
-    //mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    //mypostrequest.send(string);
-    //running = false;
+    string = "forename=" + forename + "&surname=" + surname + "&flight=" + flight + "&dob=" + dob  + "&doe=" + doe  + "&gender=" + gender + "&username=" + username;
+    alert(string);
+    mypostrequest.open("POST", "modify", true);
+    mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    mypostrequest.send(string);
+    running = false;
     return;
 }
-
 
 function deleteUser(userName) {
     var r = confirm("Confirm Removal of "+capitalizeFirstLetter(userName));
@@ -61,7 +61,7 @@ function deleteUser(userName) {
             reload()
         }
     };
-    xhttp.open("GET", "http://localhost:9090/remove?username="+userName, true);
+    xhttp.open("GET", "/remove?username="+userName, true);
     xhttp.send();
     }
 }

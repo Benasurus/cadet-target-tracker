@@ -576,14 +576,14 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	if sex == "F" {
-		sex = "<input type=\"radio\" name=\"gender-male\" id=\"gender-male\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" value=\"female\" checked> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" value=\"female\" checked> Female<br>"
 	} else {
-		sex = "<input type=\"radio\" name=\"gender-female\" id=\"gender-female\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" value=\"female\"> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" value=\"female\"> Female<br>"
 	}
 	if flight == "A" {
-		flight = "<input type=\"radio\" name=\"flight-a\" id=\"flight-a\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" value=\"B\"> B<br>"
+		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" value=\"B\"> B<br>"
 	} else {
-		flight = "<input type=\"radio\" name=\"flight-b\" id=\"flight-b\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" value=\"B\" checked> B<br>"
+		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" value=\"B\" checked> B<br>"
 	}
 	userAge = age.Age(DOB)
 	cadetAge = age.Age(DOE)
@@ -643,12 +643,13 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 		sex = "F"
 	}
 	if r.FormValue("flight") == "true" {
-		sex = "A"
+		flight = "A"
 	} else {
-		sex = "B"
+		flight = "B"
 	}
 	//if auth == true {
 	_, err := db.Exec("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
+	fmt.Println("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
 	if err != nil {
 		log.Println(err)
 	}

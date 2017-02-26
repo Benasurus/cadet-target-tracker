@@ -576,14 +576,14 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	if sex == "F" {
-		sex = "<input type=\"radio\" name=\"gender\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" value=\"female\" checked> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender-male\" id=\"gender-male\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" value=\"female\" checked> Female<br>"
 	} else {
-		sex = "<input type=\"radio\" name=\"gender\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" value=\"female\"> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender-female\" id=\"gender-female\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" value=\"female\"> Female<br>"
 	}
 	if flight == "A" {
-		flight = "<input type=\"radio\" name=\"flight\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" value=\"B\"> B<br>"
+		flight = "<input type=\"radio\" name=\"flight-a\" id=\"flight-a\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" value=\"B\"> B<br>"
 	} else {
-		flight = "<input type=\"radio\" name=\"flight\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" value=\"B\" checked> B<br>"
+		flight = "<input type=\"radio\" name=\"flight-b\" id=\"flight-b\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" value=\"B\" checked> B<br>"
 	}
 	userAge = age.Age(DOB)
 	cadetAge = age.Age(DOE)
@@ -612,7 +612,47 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 }
 
 func userModify(w http.ResponseWriter, r *http.Request) {
-
+	var userName, firstName, lastName, dob, doe, sex, flight string
+	/*var auth bool
+	auth = false
+	//Retrieves Session
+	session, err := store.Get(r, "session-name")
+	//Error handler
+	if err != nil {
+		log.Println(err)
+	} else {
+		//Authenticates the cookie
+		username, ok := session.Values["username"].(string)
+		if ok {
+			group, ok := session.Values["group"].(string)
+			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
+			if ok && group == "Staff" {
+				auth = true
+			}
+		}
+	}*/
+	r.ParseForm()
+	userName = r.FormValue("username")
+	firstName = r.FormValue("forename")
+	lastName = r.FormValue("surname")
+	dob = r.FormValue("dob")
+	doe = r.FormValue("doe")
+	if r.FormValue("gender") == "true" {
+		sex = "M"
+	} else {
+		sex = "F"
+	}
+	if r.FormValue("flight") == "true" {
+		sex = "A"
+	} else {
+		sex = "B"
+	}
+	//if auth == true {
+	_, err := db.Exec("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
+	if err != nil {
+		log.Println(err)
+	}
+	//}
 }
 
 func userAdd(w http.ResponseWriter, r *http.Request) {

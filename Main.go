@@ -444,7 +444,7 @@ func tableBuilder() string {
 			return "Error"
 		}
 		userAge = age.Age(DOB)
-		newRow = "<tr id=\"user-row-" + strconv.Itoa(rowcount) + "\" onclick=\"loadData('" + userName + "')\">\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
+		newRow = "<tr id=\"user-row-" + strconv.Itoa(rowcount) + "\" class=\"button\" onclick=\"loadData('" + userName + "')\">\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
 		table += newRow
 		rowcount++
 	}
@@ -576,14 +576,14 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	if sex == "F" {
-		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" value=\"female\" checked> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\" checked> Female<br>"
 	} else {
-		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" value=\"female\"> Female<br>"
+		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\"> Female<br>"
 	}
 	if flight == "A" {
-		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" value=\"B\"> B<br>"
+		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\"  id=\"flight-b\" class=\"button\" value=\"B\"> B<br>"
 	} else {
-		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" value=\"B\" checked> B<br>"
+		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" class=\"button\" value=\"B\" checked> B<br>"
 	}
 	userAge = age.Age(DOB)
 	cadetAge = age.Age(DOE)

@@ -26,25 +26,25 @@
 
 <form name="userModify">
         Forename:<br>
-        <input type="text" name="forename" id="forename" value="{{ .forename }}"><br>
+        <input type="text" name="forename" id="forename" class="textInput" value="{{ .forename }}"><br>
         Surname:<br>
-        <input type="text" name="surname" id="surname" value="{{ .surname }}"><br>
+        <input type="text" name="surname" id="surname" class="textInput" value="{{ .surname }}"><br>
         Flight:<br>
         {{ .flight }}
         Cadet Progression Index:<br>
-        <input type="text" name="cpi" id="cpi" value="{{ .cpi}} " readonly><br>
+        <input type="text" name="cpi" id="cpi" class="readInput" value="{{ .cpi}} " readonly><br>
         Age:<br>
-        <input type="text" name="age" id="age" value="{{ .age }}" readonly> Years Old<br>
+        <input type="text" name="age" id="age" class="readInput" value="{{ .age }}" readonly> Years Old<br>
         Date of Birth:<br>
-        <input type="text" name="dob" id="dob" value="{{ .dob }}"><br>
+        <input type="text" name="dob" id="dob" class="textInput" value="{{ .dob }}"><br>
         Cadet Career Length:<br>
-        <input type="text" name="career" id="career" value="{{ .cadet }}" readonly> Years<br>
+        <input type="text" name="career" id="career" class="readInput" value="{{ .cadet }}" readonly> Years<br>
         Date of Enrolment:<br>
-        <input type="text" name="doe" id="doe" value="{{ .doe }}"><br>
+        <input type="text" name="doe" id="doe" class="textInput" value="{{ .doe }}"><br>
         Gender:<br>
         {{ .sex }}
         Username:<br>
-        <input type="text" name="username" id="username" value="{{ .username }}" readonly><br>
+        <input type="text" name="username" id="username" class="readInput" value="{{ .username }}" readonly><br>
         <input type="submit" value="Save" onclick="saveData()">
 </form >
 <button type="button" onclick="deleteUser({{ .username }})">Delete User<button>

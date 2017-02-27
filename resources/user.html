@@ -9,7 +9,7 @@
     google.charts.load('current', {'packages':['corechart','bar']});
 </script>
 </head>
-<body>
+<body onload="loadModalVariables()">
     <header id="user-header-title" class="user-header">
         <h1>User Management</h1>
         <div id="swap" class="swap button" onClick="dashboard()">Dashboard</div>
@@ -37,7 +37,26 @@
         <!-- Modal content -->
         <div class="modal-content">
             <span class="close">&times;</span>
-            <p>Some text in the Modal..</p>
+            <h2>Add User</h2>
+            <form name="userAdd" autocomplete="off">
+                Username:<br>
+                <input type="text" name="username" id="Addusername" class="readInputAdd" value=""><br>
+                Forename:<br>
+                <input type="text" name="forename" id="Addforename" class="textInputAdd" value=""><br>
+                Surname:<br>
+                <input type="text" name="surname" id="Addsurname" class="textInputAdd" value=""><br>
+                Flight:<br>
+                <input type="radio" name="flight" id="Addflight-a" class="button" value="A" checked> A<br>
+                <input type="radio" name="flight" id="Addflight-b" class="button" value="B"> B<br>
+                Date of Birth:<br>
+                <input type="text" name="dob" id="Adddob" class="textInputAdd" value=""><br>
+                Date of Enrolment:<br>
+                <input type="text" name="doe" id="Adddoe" class="textInputAdd" value=""><br>
+                Gender:<br>
+                <input type="radio" name="gender" id="Addgender-male" class="button" value="male" checked> Male<br>
+                <input type="radio" name="gender" id="Addgender-female" class="button" value="female"> Female<br>
+                <input type="submit" value="Add" onclick="addUser()">
+            </form>
         </div>
 
 </div>   

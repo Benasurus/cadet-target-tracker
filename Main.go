@@ -649,7 +649,6 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	}
 	//if auth == true {
 	_, err := db.Exec("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
-	fmt.Println("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
 	if err != nil {
 		log.Println(err)
 	}
@@ -657,7 +656,47 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 }
 
 func userAdd(w http.ResponseWriter, r *http.Request) {
-
+	var userName, firstName, lastName, dob, doe, sex, flight string
+	/*var auth bool
+	auth = false
+	//Retrieves Session
+	session, err := store.Get(r, "session-name")
+	//Error handler
+	if err != nil {
+		log.Println(err)
+	} else {
+		//Authenticates the cookie
+		username, ok := session.Values["username"].(string)
+		if ok {
+			group, ok := session.Values["group"].(string)
+			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
+			if ok && group == "Staff" {
+				auth = true
+			}
+		}
+	}*/
+	r.ParseForm()
+	userName = r.FormValue("username")
+	firstName = r.FormValue("forename")
+	lastName = r.FormValue("surname")
+	dob = r.FormValue("dob")
+	doe = r.FormValue("doe")
+	if r.FormValue("gender") == "true" {
+		sex = "M"
+	} else {
+		sex = "F"
+	}
+	if r.FormValue("flight") == "true" {
+		flight = "A"
+	} else {
+		flight = "B"
+	}
+	//if auth == true {
+	_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
+	if err != nil {
+		log.Println(err)
+	}
+	//}
 }
 
 func userRemove(w http.ResponseWriter, r *http.Request) {

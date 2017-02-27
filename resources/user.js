@@ -43,7 +43,6 @@ function saveData() {
     }
     username = document.getElementById("username").value;
     string = "forename=" + forename + "&surname=" + surname + "&flight=" + flight + "&dob=" + dob  + "&doe=" + doe  + "&gender=" + gender + "&username=" + username;
-    alert(string);
     mypostrequest.open("POST", "modify", true);
     mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     mypostrequest.send(string);
@@ -74,6 +73,38 @@ function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+function addUser() {
+    var forename = "";
+    var surname = "";
+    var flight = "";
+    var dob = "";
+    var doe = "";
+    var gender = "";
+    var username = "";
+    //var string = "";
+    forename = document.getElementById("Addforename").value;
+    surname = document.getElementById("Addsurname").value;
+    if (document.getElementById('Addflight-a').checked) {
+        flight = "true";
+    } else {
+        flight = "false";
+    }
+    dob = document.getElementById("Adddob").value;
+    doe = document.getElementById("Adddoe").value;
+    if (document.getElementById('Addgender-male').checked) {
+        gender = "true";
+    } else {
+        gender = "false";
+    }
+    username = document.getElementById("Addusername").value;
+    string = "forename=" + forename + "&surname=" + surname + "&flight=" + flight + "&dob=" + dob  + "&doe=" + doe  + "&gender=" + gender + "&username=" + username;
+    mypostrequest.open("POST", "add", true);
+    mypostrequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    mypostrequest.send(string);
+    running = false;
+    return;
+}
+
 mypostrequest.onreadystatechange=function(){
  if (mypostrequest.readyState==4){
   if (mypostrequest.status==200 || window.location.href.indexOf("http")==-1){
@@ -102,28 +133,31 @@ function ajaxRequest(){
   return false
 }
 
-// Get the modal
-var modal = document.getElementById('myModal');
+var modal = ""
+var btn = ""
+var span =""
 
-// Get the button that opens the modal
-var btn = document.getElementById("myBtn");
+function loadModalVariables() {
+    // Get the modal
+    modal = document.getElementById('myModal');
+    // Get the button that opens the modal
+    btn = document.getElementById("myBtn");
+    // Get the <span> element that closes the modal
+    span = document.getElementsByClassName("close")[0];
+    // When the user clicks the button, open the modal 
+    btn.onclick = function() {
+        modal.style.display = "block";
+    }
 
-// Get the <span> element that closes the modal
-var span = document.getElementsByClassName("close")[0];
-
-// When the user clicks the button, open the modal 
-btn.onclick = function() {
-    modal.style.display = "block";
-}
-
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() {
-    modal.style.display = "none";
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    if (event.target == modal) {
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function() {
         modal.style.display = "none";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
     }
 }

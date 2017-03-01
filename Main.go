@@ -59,12 +59,18 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/jimlawless/cfg"
+
+	_ "gopkg.in/asn1-ber.v1"
+	"gopkg.in/ldap.v2"
 )
 
 //Defining global variables
 var db *sql.DB                                                          //database variable
 var err error                                                           //error variable
 var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32)) //cookie store variable
+var userTable map[string]string
+var config map[string]string
 
 //Round function as Go lacks a built in round function
 func Round(val float64, roundOn float64, places int) (newVal float64) {
@@ -79,6 +85,16 @@ func Round(val float64, roundOn float64, places int) (newVal float64) {
 	}
 	newVal = round / pow
 	return
+}
+
+func configLoad()(bool) {
+	config = make(map[string]string)
+    err := cfg.Load("LDAP.cfg", config)
+    if err != nil {
+        log.Fatal(err)
+		return false
+    }
+	return true
 }
 
 func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
@@ -102,10 +118,10 @@ func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 		}
 	}
 	//Authenticates via NTLM and then HTTP Basic
-	val, username, group = authNTLM(w, r)
-	if !val {
-		val, username, group = authBasic(w, r)
-	}
+	//val, group = authLDAP()
+	//if !val {
+	//	val, username, group = authBasic(w, r)
+	//}
 	//If NTLM or Basic authentication succeeds generates a cookie
 	if val {
 		session.Values["username"] = username
@@ -117,17 +133,81 @@ func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	return false, "", ""
 }
 
-func authNTLM(w http.ResponseWriter, r *http.Request) (bool, string, string) {
-	//AuthNTLM module authenticates via NTLM, called only by auth module
-	auth := r.Header.Get("Authorization")
-	if !(strings.HasPrefix(auth, "NTLM ")) {
-		fmt.Println("Trying NTML")
-		w.Header().Set("WWW-Authenticate", "NTLM")
-		http.Error(w, "Unauthorized.", 401)
-		return false, "", ""
+func userTableFill() () {
+	userTable = make(map[string]string)
+	port,_ := strconv.ParseUint(config["port"], 10, 64)
+
+	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
+	if err != nil {
+		log.Fatal(err)
 	}
-	fmt.Println(auth)
-	return true, "NTLM", "user"
+	defer l.Close()
+
+	// Reconnect with TLS
+	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	// First bind with a read only user
+	err = l.Bind( "cn=" + config["distinguishedname"] + "," + config["ou"] + "," + config["domainname"] + "," + config["topleveldomain"], config["password"])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Search for the given username
+	
+	searchRequest := ldap.NewSearchRequest(
+		config["domainname"] + "," + config["topleveldomain"],
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(objectClass=posixAccount)",
+		[]string{"sAMAccountName"},
+		nil,)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, entry := range sr.Entries {
+		userTable[strings.ToLower(entry.GetAttributeValue("sAMAccountName"))] = entry.DN
+	}
+
+}
+
+func checkUser(username string)(bool) {
+	var LDAPname string
+	LDAPname = userTable[strings.ToLower(username)]
+	if LDAPname == "" {
+		return false
+	}
+	return true
+}
+
+func authLDAP(username, password string)(string, bool) {
+	if checkUser(username) == false {
+		return "", false
+	}
+	port,_ := strconv.ParseUint(config["port"], 10, 64)
+
+	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer l.Close()
+
+	// Reconnect with TLS
+	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	// Bind as the user to verify their password
+	err = l.Bind(userTable[username], password)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return "", true
 }
 
 func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
@@ -708,6 +788,12 @@ func userRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	//Loads configuration for connection to LDAP Directory
+	configLoad()
+	fmt.Println(config["distinguishedname"])
+	fmt.Println(config["password"])
+	//Populates userTable so can check if user is present and convert between sAMAccountName and DistinguishedName
+	userTableFill()
 	//Opens connection to the database under the db variable
 	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker?parseTime=true")
 	//Error handler
@@ -720,6 +806,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	fmt.Println(authLDAP("MediaPC","media"))
 	//Web server
 	//Defines handler functions for each webpage
 	http.HandleFunc("/cadet", progressionTracker)

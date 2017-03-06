@@ -32,15 +32,15 @@
         Flight:<br>
         {{ .flight }}
         Cadet Progression Index:<br>
-        <input type="text" name="cpi" id="cpi" class="readInput" value="{{ .cpi}} " readonly><br>
+        <input type="number" name="cpi" id="cpi" class="readInput" value="{{ .cpi}} " readonly><br>
         Age:<br>
-        <input type="text" name="age" id="age" class="readInput" value="{{ .age }}" readonly> Years Old<br>
+        <input type="number" name="age" id="age" class="readInput" value="{{ .age }}" readonly> Years Old<br>
         Date of Birth:<br>
-        <input type="text" name="dob" id="dob" class="textInput" value="{{ .dob }}"><br>
+        <input type="date" name="dob" id="dob" class="dateInput" value="{{ .dob }}"><br>
         Cadet Career Length:<br>
-        <input type="text" name="career" id="career" class="readInput" value="{{ .cadet }}" readonly> Years<br>
+        <input type="number" name="career" id="career" class="readInput" value="{{ .cadet }}" readonly> Years<br>
         Date of Enrolment:<br>
-        <input type="text" name="doe" id="doe" class="textInput" value="{{ .doe }}"><br>
+        <input type="date" name="doe" id="doe" class="dateInput" value="{{ .doe }}"><br>
         Gender:<br>
         {{ .sex }}
         Username:<br>

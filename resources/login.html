@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="/resources/login.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/resources/login.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+</head>
+<body>
+    <div id="container" class="container">
+        <h2 id="title">Cadet Target Tracker</h2>
+        <h3 id="squadron">{{ .squadron }}</h3>
+        <img src="/resources/Crest.png" alt="ATC Crest" style="width:180px;height:219px;">
+        <form name="login" autocomplete="off">
+            <input type="text" name="username" id="loginUsername" value=""></br>
+            <input type="password" name="password" id="loginPassword" value=""></br>
+            <input type="submit" value="Login" onclick="auth()">
+        </form>
+    </div>
+</body>
+</html>

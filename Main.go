@@ -89,7 +89,7 @@ func Round(val float64, roundOn float64, places int) (newVal float64) {
 
 func configLoad()(bool) {
 	config = make(map[string]string)
-    err := cfg.Load("LDAP.cfg", config)
+    err := cfg.Load("config.cfg", config)
     if err != nil {
         log.Fatal(err)
 		return false
@@ -97,11 +97,10 @@ func configLoad()(bool) {
 	return true
 }
 
-func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
-	//Auth module is called to authenticate a user
+func authCookie(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	//Variables
-	var val bool
 	var username, group string
+	username, group = "error", "error"
 	//Generates a session
 	session, err := store.Get(r, "session-name")
 	//Error handler
@@ -117,20 +116,50 @@ func auth(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 			return true, username, group
 		}
 	}
-	//Authenticates via NTLM and then HTTP Basic
-	//val, group = authLDAP()
-	//if !val {
-	//	val, username, group = authBasic(w, r)
-	//}
-	//If NTLM or Basic authentication succeeds generates a cookie
-	if val {
-		session.Values["username"] = username
-		session.Values["group"] = group
-		session.Save(r, w)
-		return true, username, group
-	}
 	//Returns false and empty values if authentication fails
-	return false, "", ""
+	return false, username, group
+}
+
+func authLDAP(w http.ResponseWriter, r *http.Request, username string, password string)(bool) {
+	//Generates a session
+	session, err := store.Get(r, "session-name")
+	var group string
+	if checkUser(username) == false {
+		return false
+	}
+	port,_ := strconv.ParseUint(config["port"], 10, 64)
+
+	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+	defer l.Close()
+
+	// Reconnect with TLS
+	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	// Bind as the user to verify their password
+	err = l.Bind(userTable[username], password)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+	if strings.Contains(userTable[username], "ou=staff") {
+        group = "staff"
+    } else if strings.Contains(userTable[username], "ou=cadets") {
+        group = "cadet"
+    } else {
+		group = "none"
+	}
+	//If LDAP authentication succeeds generates a cookie
+	session.Values["username"] = username
+	session.Values["group"] = group
+	session.Save(r, w)
+	return true
 }
 
 func userTableFill() () {
@@ -150,7 +179,7 @@ func userTableFill() () {
 	//}
 
 	// First bind with a read only user
-	err = l.Bind( "cn=" + config["distinguishedname"] + "," + config["ou"] + "," + config["domainname"] + "," + config["topleveldomain"], config["password"])
+	err = l.Bind(config["distinguishedname"], config["password"])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -158,7 +187,7 @@ func userTableFill() () {
 	// Search for the given username
 	
 	searchRequest := ldap.NewSearchRequest(
-		config["domainname"] + "," + config["topleveldomain"],
+		config["basedomainname"],
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(objectClass=posixAccount)",
 		[]string{"sAMAccountName"},
@@ -182,54 +211,6 @@ func checkUser(username string)(bool) {
 		return false
 	}
 	return true
-}
-
-func authLDAP(username, password string)(string, bool) {
-	if checkUser(username) == false {
-		return "", false
-	}
-	port,_ := strconv.ParseUint(config["port"], 10, 64)
-
-	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer l.Close()
-
-	// Reconnect with TLS
-	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
-	// Bind as the user to verify their password
-	err = l.Bind(userTable[username], password)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return "", true
-}
-
-func authBasic(w http.ResponseWriter, r *http.Request) (bool, string, string) {
-	//AuthBasic module authenticates via HTTP basic, called only by auth module
-	fmt.Println("Trying Basic Auth")
-	username, password, ok := r.BasicAuth()
-	if ok {
-		ldapSuccess := true
-		group := "admin"
-		fmt.Println(password)
-		// will need an LDAP lookup using username and password to
-		// a) validate the details are correct and
-		// b) get the user group information
-		if ldapSuccess {
-			return true, username, group
-		}
-		return false, "", ""
-
-	}
-	w.Header().Set("WWW-Authenticate", "Basic realm=\"localhost\"")
-
-	return false, "", ""
 }
 
 func userPresent(username string) bool {
@@ -532,15 +513,10 @@ func tableBuilder() string {
 }
 
 func progressionTracker(w http.ResponseWriter, r *http.Request) {
-	//authorised, username, group := auth(w, r)
-	userName := "TestUser"
-	authorised := true
-	//fmt.Println(username,group)
-	if !authorised {
-		// fmt.Fprintf(w, "Failed to Authenticate")
-		return
-	}
-	if r.Method == "GET" {
+	var userName, group string
+	var auth bool
+	auth,userName,group = authCookie(w,r)
+	if auth == true && group == "staff" {
 		html := progressionBuilder(5, 15, userName)
 		pagevars := map[string]interface{}{
 			"html": template.HTML(html),
@@ -548,79 +524,76 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("resources/cadet.html")
 		if err != nil {
 			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
 		} else {
 			err = t.Execute(w, pagevars)
 			if err != nil {
 				log.Println(err)
+				http.Error(w, "Internal Error", 500 )
 			}
 		}
 	} else {
-		r.ParseForm()
-		// logic part of log in
-		//sector := r.Form["username"][0]
-		//sector1, err := strconv.Atoi(r.Form["sector1"][0])
-		//if err != nil{
-		//   log.Println(err)
-		//}
+		http.Error(w, "Authentication has Failed", 401 )
 	}
 }
 
 func staffPage(w http.ResponseWriter, r *http.Request) {
+	var group string
+	var auth bool
 	overall, flight, sex, sectors := dataCalculation()
-	pagevars := map[string]interface{}{
-		"overall": template.JS(overall),
-		"flight":  template.JS(flight),
-		"sex":     template.JS(sex),
-		"sectors": template.JS(sectors)}
-	t, err := template.ParseFiles("resources/staff.html")
-	if err != nil {
-		log.Println(err)
-	} else {
-		err = t.Execute(w, pagevars)
+	auth,_,group = authCookie(w,r)
+	if auth == true && group == "staff" {
+		pagevars := map[string]interface{}{
+			"overall": template.JS(overall),
+			"flight":  template.JS(flight),
+			"sex":     template.JS(sex),
+			"sectors": template.JS(sectors)}
+		t, err := template.ParseFiles("resources/staff.html")
 		if err != nil {
 			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
+		} else {
+			err = t.Execute(w, pagevars)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Internal Error", 500 )
+			}
 		}
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
 	}
 }
 
 func userManagement(w http.ResponseWriter, r *http.Request) {
+	var group string
+	var auth bool
 	table := tableBuilder()
-	pagevars := map[string]interface{}{
-		"table": template.HTML(table)}
-	t, err := template.ParseFiles("resources/user.html")
-	if err != nil {
-		log.Println(err)
-	} else {
-		err = t.Execute(w, pagevars)
+	auth,_,group = authCookie(w,r)
+	if auth == true && group == "staff" {
+		pagevars := map[string]interface{}{
+			"table": template.HTML(table)}
+		t, err := template.ParseFiles("resources/user.html")
 		if err != nil {
 			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
+		} else {
+			err = t.Execute(w, pagevars)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Internal Error", 500 )
+			}
 		}
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
 	}
 }
 
 func dbWrite(w http.ResponseWriter, r *http.Request) {
 	var value, column string
 	var total, CPI float64
-	var username string
-	username = "TEST"
-	/*var auth bool
-	auth = false
-	//Retrieves Session
-	session, err := store.Get(r, "session-name")
-	//Error handler
-	if err != nil {
-		log.Println(err)
-	} else {
-		//Authenticates the cookie
-		username, ok := session.Values["username"].(string)
-		if ok {
-			group, ok := session.Values["group"].(string)
-			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
-			if ok && group == "Cadet" {
-				auth = true
-			}
-		}
-	}*/
+	var username, group string
+	var auth bool
+	auth, username, group = authCookie(w,r)
 	r.ParseForm()
 	for count := 0; count < 15; count++ {
 		value += "," + (r.FormValue("section" + strconv.Itoa(count+1)))
@@ -635,13 +608,15 @@ func dbWrite(w http.ResponseWriter, r *http.Request) {
 	//Calculate Cadet Progression Index
 	CPI = total / 150
 	fmt.Println("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
-	//if auth == true {
-	_, err := db.Exec("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
-	//fmt.Println(username + "[" + group + "] Wrote to Database")
-	if err != nil {
-		log.Println(err)
+	if auth == true && group == "cadet" {
+		_, err := db.Exec("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
+		}
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
 	}
-	//}
 }
 
 func userLoad(w http.ResponseWriter, r *http.Request) {
@@ -649,68 +624,63 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 	var userName, forename, surname, sex, flight, sector string
 	var userAge, cadetAge, cpi int
 	var DOB, DOE time.Time
+	var auth bool
+	auth,_, _ = authCookie(w,r)
 	query = r.URL.Query()
-	userName = query.Get("username")
-	err := db.QueryRow("SELECT * FROM userdata WHERE userName=?", userName).Scan(&userName, &forename, &surname, &DOB, &DOE, &sex, &flight)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if sex == "F" {
-		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\" checked> Female<br>"
-	} else {
-		sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\"> Female<br>"
-	}
-	if flight == "A" {
-		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\"  id=\"flight-b\" class=\"button\" value=\"B\"> B<br>"
-	} else {
-		flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" class=\"button\" value=\"B\" checked> B<br>"
-	}
-	userAge = age.Age(DOB)
-	cadetAge = age.Age(DOE)
-	sector, cpi = sectorChart(userName)
-	pagevars := map[string]interface{}{
-		"forename": template.HTML(forename),
-		"surname":  template.HTML(surname),
-		"flight":   template.HTML(flight),
-		"age":      template.HTML(strconv.Itoa(userAge)),
-		"dob":      template.HTML(strings.TrimSuffix(time.Time.String(DOB), " 00:00:00 +0000 UTC")),
-		"cadet":    template.HTML(strconv.Itoa(cadetAge)),
-		"doe":      template.HTML(strings.TrimSuffix(time.Time.String(DOE), " 00:00:00 +0000 UTC")),
-		"sex":      template.HTML(sex),
-		"username": template.HTML(userName),
-		"cpi":      template.HTML(strconv.Itoa(cpi)),
-		"sector":   template.JS(sector)}
-	t, err := template.ParseFiles("resources/userLoad.html")
-	if err != nil {
-		log.Println(err)
-	} else {
-		err = t.Execute(w, pagevars)
+	if auth == true {
+		userName = query.Get("username")
+		err := db.QueryRow("SELECT * FROM userdata WHERE userName=?", userName).Scan(&userName, &forename, &surname, &DOB, &DOE, &sex, &flight)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if sex == "F" {
+			sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\" checked> Female<br>"
+		} else {
+			sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\" checked> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\"> Female<br>"
+		}
+		if flight == "A" {
+			flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\" checked> A<br><input type=\"radio\" name=\"flight\"  id=\"flight-b\" class=\"button\" value=\"B\"> B<br>"
+		} else {
+			flight = "<input type=\"radio\" name=\"flight\" id=\"flight-a\" class=\"button\" value=\"A\"> A<br><input type=\"radio\" name=\"flight\" id=\"flight-b\" class=\"button\" value=\"B\" checked> B<br>"
+		}
+		userAge = age.Age(DOB)
+		cadetAge = age.Age(DOE)
+		sector, cpi = sectorChart(userName)
+		pagevars := map[string]interface{}{
+			"forename": template.HTML(forename),
+			"surname":  template.HTML(surname),
+			"flight":   template.HTML(flight),
+			"age":      template.HTML(strconv.Itoa(userAge)),
+			"dob":      template.HTML(strings.TrimSuffix(time.Time.String(DOB), " 00:00:00 +0000 UTC")),
+			"cadet":    template.HTML(strconv.Itoa(cadetAge)),
+			"doe":      template.HTML(strings.TrimSuffix(time.Time.String(DOE), " 00:00:00 +0000 UTC")),
+			"sex":      template.HTML(sex),
+			"username": template.HTML(userName),
+			"cpi":      template.HTML(strconv.Itoa(cpi)),
+			"sector":   template.JS(sector)}
+		t, err := template.ParseFiles("resources/userLoad.html")
 		if err != nil {
 			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
+		} else {
+			err = t.Execute(w, pagevars)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Internal Error", 500 )
+			}
 		}
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
 	}
 }
 
 func userModify(w http.ResponseWriter, r *http.Request) {
 	var userName, firstName, lastName, dob, doe, sex, flight string
-	/*var auth bool
-	auth = false
-	//Retrieves Session
-	session, err := store.Get(r, "session-name")
-	//Error handler
-	if err != nil {
-		log.Println(err)
-	} else {
-		//Authenticates the cookie
-		username, ok := session.Values["username"].(string)
-		if ok {
-			group, ok := session.Values["group"].(string)
-			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
-			if ok && group == "Staff" {
-				auth = true
-			}
-		}
-	}*/
+	var auth bool
+	val,_, group := authCookie(w,r)
+	if val == true && group == "staff" {
+		auth = true
+	}
 	r.ParseForm()
 	userName = r.FormValue("username")
 	firstName = r.FormValue("forename")
@@ -727,71 +697,155 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	} else {
 		flight = "B"
 	}
-	//if auth == true {
-	_, err := db.Exec("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
-	if err != nil {
-		log.Println(err)
+	if auth == true {
+		_, err := db.Exec("UPDATE userdata SET firstName='" + firstName + "', lastName='" + lastName + "', dateOfBirth='" + dob + "', dateOfEnrollment='" + doe + "', sex='" + sex + "', flight='" + flight + "' WHERE userName='" + userName + "'")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
+		}
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
 	}
-	//}
 }
 
 func userAdd(w http.ResponseWriter, r *http.Request) {
-	var userName, firstName, lastName, dob, doe, sex, flight string
-	/*var auth bool
-	auth = false
-	//Retrieves Session
-	session, err := store.Get(r, "session-name")
-	//Error handler
-	if err != nil {
-		log.Println(err)
-	} else {
-		//Authenticates the cookie
-		username, ok := session.Values["username"].(string)
-		if ok {
-			group, ok := session.Values["group"].(string)
-			fmt.Println(username + "[" + group + "] Succesfully Authenticated Cookie")
-			if ok && group == "Staff" {
-				auth = true
+	var userName, firstName, lastName, dob, doe, sex, flight, group string
+	var auth bool
+	auth,_,group = authCookie(w,r)
+	if auth == true && group == "staff" {
+		r.ParseForm()
+		userName = r.FormValue("username")
+		firstName = r.FormValue("forename")
+		lastName = r.FormValue("surname")
+		dob = r.FormValue("dob")
+		doe = r.FormValue("doe")
+		if r.FormValue("gender") == "true" {
+			sex = "M"
+		} else {
+			sex = "F"
+		}
+		if r.FormValue("flight") == "true" {
+			flight = "A"
+		} else {
+			flight = "B"
+		}
+		if auth == true && group == "staff" {
+			_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Internal Error", 500 )
 			}
 		}
-	}*/
-	r.ParseForm()
-	userName = r.FormValue("username")
-	firstName = r.FormValue("forename")
-	lastName = r.FormValue("surname")
-	dob = r.FormValue("dob")
-	doe = r.FormValue("doe")
-	if r.FormValue("gender") == "true" {
-		sex = "M"
 	} else {
-		sex = "F"
+		http.Error(w, "Authentication has Failed", 401 )
 	}
-	if r.FormValue("flight") == "true" {
-		flight = "A"
-	} else {
-		flight = "B"
-	}
-	//if auth == true {
-	_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
-	if err != nil {
-		log.Println(err)
-	}
-	//}
 }
 
 func userRemove(w http.ResponseWriter, r *http.Request) {
 	var query url.Values
-	var userName string
-	query = r.URL.Query()
-	userName = query.Get("username")
-	deleteUser(userName)
+	var userName, group string
+	var auth bool
+	auth,_,group = authCookie(w,r)
+	if auth == true && group == "staff" {
+		query = r.URL.Query()
+		userName = query.Get("username")
+		deleteUser(userName)
+	} else {
+		http.Error(w, "Authentication has Failed", 401 )
+	}
+}
+
+func login(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		pagevars := map[string]interface{}{
+			"squadron":   template.HTML(config["squadron"])}
+		t, err := template.ParseFiles("resources/login.html")
+		if err != nil {
+			log.Println(err)
+		} else {
+			err = t.Execute(w, pagevars)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	} else {
+		var userName, password string
+		var auth bool
+
+		r.ParseForm()
+		userName = r.FormValue("username")
+		password = r.FormValue("password")
+		
+		if checkUser(userName) == true {
+			auth = authLDAP(w, r, userName, password)
+			fmt.Println("Auth Success")
+		} else {
+			http.Error(w, "Incorrect Username", 401 )
+			fmt.Println("Wrong Username")
+		}
+
+		if auth == true {
+			http.Redirect(w,r,"/staff", 303)
+			/*session, err := store.Get(r, "session-name")
+			if err != nil {
+				log.Println(err)
+			}
+			group := session.Values["group"]
+			if group == "staff" {
+				http.Redirect(w,r,"/staff", 303)
+			} else if group == "cadet" {
+				http.Redirect(w,r,"/cadet", 303)
+			} else {
+				http.Error(w, "Authentication Error", 401 )
+				fmt.Println("Auth Unsuccessful")
+			}*/
+		} else {
+			http.Error(w, "Incorrect Password", 401 )
+			fmt.Println("Wrong Password")
+		}
+	}
+
+}
+
+func loginAuth(w http.ResponseWriter, r *http.Request) {
+	var userName, password string
+	var auth bool
+
+	r.ParseForm()
+	userName = r.FormValue("username")
+	password = r.FormValue("password")
+	
+	 if checkUser(userName) == true {
+		 auth = authLDAP(w, r, userName, password)
+		 fmt.Println("Auth Success")
+	 } else {
+		 http.Error(w, "Incorrect Username", 401 )
+		 fmt.Println("Wrong Username")
+	 }
+
+	 if auth == true {
+		 session, err := store.Get(r, "session-name")
+		 if err != nil {
+			 log.Println(err)
+		 }
+		 group := session.Values["group"]
+		 if group == "staff" {
+			 http.Redirect(w,r,"staff", 303)
+		 } else if group == "cadet" {
+			 http.Redirect(w,r,"cadet", 303)
+		 } else {
+			 http.Error(w, "Authentication Error", 401 )
+			 fmt.Println("Auth Unsuccessful")
+		 }
+	 } else {
+		 http.Error(w, "Incorrect Password", 401 )
+		 fmt.Println("Wrong Password")
+	 }
 }
 
 func main() {
 	//Loads configuration for connection to LDAP Directory
 	configLoad()
-	fmt.Println(config["distinguishedname"])
-	fmt.Println(config["password"])
 	//Populates userTable so can check if user is present and convert between sAMAccountName and DistinguishedName
 	userTableFill()
 	//Opens connection to the database under the db variable
@@ -806,9 +860,10 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Println(authLDAP("MediaPC","media"))
 	//Web server
 	//Defines handler functions for each webpage
+	http.HandleFunc("/login", login)
+	http.HandleFunc("/auth", loginAuth)
 	http.HandleFunc("/cadet", progressionTracker)
 	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)

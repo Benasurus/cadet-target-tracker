@@ -57,7 +57,6 @@ import (
 
 	"github.com/bearbin/go-age"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/jimlawless/cfg"
 
@@ -68,7 +67,7 @@ import (
 //Defining global variables
 var db *sql.DB                                                          //database variable
 var err error                                                           //error variable
-var store = sessions.NewCookieStore(securecookie.GenerateRandomKey(32)) //cookie store variable
+var store = sessions.NewCookieStore([]byte("9xCKuZUsytH1zoVWJHHXgeJ98NjuXppy076xsc3X4IRqV0bcgxXH0b4MI8MSklVP")) //cookie store variable
 var userTable map[string]string
 var config map[string]string
 
@@ -91,7 +90,7 @@ func configLoad()(bool) {
 	config = make(map[string]string)
     err := cfg.Load("config.cfg", config)
     if err != nil {
-        log.Fatal(err)
+        log.Println(err)
 		return false
     }
 	return true
@@ -120,46 +119,41 @@ func authCookie(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	return false, username, group
 }
 
-func authLDAP(w http.ResponseWriter, r *http.Request, username string, password string)(bool) {
+func authLDAP(w http.ResponseWriter, r *http.Request, username string, password string)(bool, string) {
 	//Generates a session
-	session, err := store.Get(r, "session-name")
 	var group string
 	if checkUser(username) == false {
-		return false
+		return false, ""
 	}
 	port,_ := strconv.ParseUint(config["port"], 10, 64)
 
 	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
 	if err != nil {
-		log.Fatal(err)
-		return false
+		log.Println(err)
+		return false, ""
 	}
 	defer l.Close()
 
 	// Reconnect with TLS
 	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
 	//if err != nil {
-	//	log.Fatal(err)
+	//	log.Println(err)
 	//}
 
 	// Bind as the user to verify their password
 	err = l.Bind(userTable[username], password)
 	if err != nil {
-		log.Fatal(err)
-		return false
+		log.Println(err)
+		return false, ""
 	}
 	if strings.Contains(userTable[username], "ou=staff") {
         group = "staff"
     } else if strings.Contains(userTable[username], "ou=cadets") {
         group = "cadet"
     } else {
-		group = "none"
+		group = "staff"
 	}
-	//If LDAP authentication succeeds generates a cookie
-	session.Values["username"] = username
-	session.Values["group"] = group
-	session.Save(r, w)
-	return true
+	return true, group
 }
 
 func userTableFill() () {
@@ -168,20 +162,20 @@ func userTableFill() () {
 
 	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", config["url"], port))
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer l.Close()
 
 	// Reconnect with TLS
 	//err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
 	//if err != nil {
-	//	log.Fatal(err)
+	//	log.Println(err)
 	//}
 
 	// First bind with a read only user
 	err = l.Bind(config["distinguishedname"], config["password"])
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// Search for the given username
@@ -195,7 +189,7 @@ func userTableFill() () {
 
 	sr, err := l.Search(searchRequest)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	for _, entry := range sr.Entries {
@@ -322,7 +316,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	for rows.Next() {
 		err := rows.Scan(&sectorID, &sectorLabel, &sectorDescription)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			return "Error"
 		}
 		sectorTitle[sectorID] = sectorLabel
@@ -372,14 +366,14 @@ func dataCalculation() (string, string, string, string) {
 		cpi = 0
 		rows, err := db.Query("SELECT t1.cpi,t3.flight,t3.sex FROM transactions t1 INNER JOIN userdata AS t3 ON t1.userName=t3.userName WHERE t1.timeStamp=(SELECT MAX(t2.timeStamp) FROM transactions t2 WHERE timeStamp < '" + strconv.Itoa(yearChange) + "-" + strconv.Itoa(monthChange) + "-01' AND t2.userName = t1.userName)")
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var flight, sex string
 			err := rows.Scan(&cpi, &flight, &sex)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 			cpiTotal += cpi
 			if flight == "A" {
@@ -446,13 +440,13 @@ func sectorCalculation(month, year int) string {
 	}
 	rows, err := db.Query("SELECT t1.* FROM transactions t1 WHERE t1.timeStamp=(SELECT MAX(t2.timeStamp) FROM transactions t2 WHERE timeStamp < '" + strconv.Itoa(year) + "-" + strconv.Itoa(month) + "-01' AND t2.userName = t1.userName)")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&ID, &user, &time, &s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &s9, &s10, &s11, &s12, &s13, &s14, &s15, &cpi)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		ts1, ts2, ts3, ts4, ts5, ts6, ts7, ts8, ts9, ts10, ts11, ts12, ts13, ts14, ts15 = s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15
 		count++
@@ -533,7 +527,7 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Error(w, "Authentication has Failed", 401 )
+		http.Redirect(w,r,"/login", 401)
 	}
 }
 
@@ -560,7 +554,7 @@ func staffPage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Error(w, "Authentication has Failed", 401 )
+		http.Redirect(w,r,"/login", 401)
 	}
 }
 
@@ -584,7 +578,7 @@ func userManagement(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Error(w, "Authentication has Failed", 401 )
+		http.Redirect(w,r,"/login", 401)
 	}
 }
 
@@ -733,7 +727,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 			_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
 			if err != nil {
 				log.Println(err)
-				http.Error(w, "Internal Error", 500 )
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 	} else {
@@ -762,14 +756,16 @@ func login(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("resources/login.html")
 		if err != nil {
 			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			err = t.Execute(w, pagevars)
 			if err != nil {
 				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 	} else {
-		var userName, password string
+		var userName, password, group, redirect string
 		var auth bool
 
 		r.ParseForm()
@@ -777,70 +773,27 @@ func login(w http.ResponseWriter, r *http.Request) {
 		password = r.FormValue("password")
 		
 		if checkUser(userName) == true {
-			auth = authLDAP(w, r, userName, password)
-			fmt.Println("Auth Success")
+			auth,group = authLDAP(w, r, userName, password)
 		} else {
 			http.Error(w, "Incorrect Username", 401 )
-			fmt.Println("Wrong Username")
 		}
 
 		if auth == true {
-			http.Redirect(w,r,"/staff", 303)
-			/*session, err := store.Get(r, "session-name")
+			session, err := store.Get(r, userName)
 			if err != nil {
 				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-			group := session.Values["group"]
-			if group == "staff" {
-				http.Redirect(w,r,"/staff", 303)
-			} else if group == "cadet" {
-				http.Redirect(w,r,"/cadet", 303)
-			} else {
-				http.Error(w, "Authentication Error", 401 )
-				fmt.Println("Auth Unsuccessful")
-			}*/
+			session.Values["username"] = userName
+			session.Values["group"] = group
+			session.Save(r,w)
+			redirect = "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/"+group+"\" /></head><body><p>Login Successful. Wait 2 seconds, or click <a href=\"/"+group+"\">here</a> if you are not automatically redirected.</p></body>"
+			fmt.Fprintf(w, redirect)
 		} else {
 			http.Error(w, "Incorrect Password", 401 )
-			fmt.Println("Wrong Password")
 		}
 	}
 
-}
-
-func loginAuth(w http.ResponseWriter, r *http.Request) {
-	var userName, password string
-	var auth bool
-
-	r.ParseForm()
-	userName = r.FormValue("username")
-	password = r.FormValue("password")
-	
-	 if checkUser(userName) == true {
-		 auth = authLDAP(w, r, userName, password)
-		 fmt.Println("Auth Success")
-	 } else {
-		 http.Error(w, "Incorrect Username", 401 )
-		 fmt.Println("Wrong Username")
-	 }
-
-	 if auth == true {
-		 session, err := store.Get(r, "session-name")
-		 if err != nil {
-			 log.Println(err)
-		 }
-		 group := session.Values["group"]
-		 if group == "staff" {
-			 http.Redirect(w,r,"staff", 303)
-		 } else if group == "cadet" {
-			 http.Redirect(w,r,"cadet", 303)
-		 } else {
-			 http.Error(w, "Authentication Error", 401 )
-			 fmt.Println("Auth Unsuccessful")
-		 }
-	 } else {
-		 http.Error(w, "Incorrect Password", 401 )
-		 fmt.Println("Wrong Password")
-	 }
 }
 
 func main() {
@@ -863,7 +816,6 @@ func main() {
 	//Web server
 	//Defines handler functions for each webpage
 	http.HandleFunc("/login", login)
-	http.HandleFunc("/auth", loginAuth)
 	http.HandleFunc("/cadet", progressionTracker)
 	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)

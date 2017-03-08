@@ -101,7 +101,7 @@ func authCookie(w http.ResponseWriter, r *http.Request) (bool, string, string) {
 	var username, group string
 	username, group = "error", "error"
 	//Generates a session
-	session, err := store.Get(r, "session-name")
+	session, err := store.Get(r, "CadetTracker")
 	//Error handler
 	if err != nil {
 		log.Println(err)
@@ -476,7 +476,7 @@ func sectorChart(user string) (string, int) {
 	var sector string
 	err := db.QueryRow("SELECT section1, section2, section3, section4, section5, section6, section7, section8, section9, section10, section11, section12, section13, section14, section15, cpi FROM transactions WHERE userName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &s9, &s10, &s11, &s12, &s13, &s14, &s15, &cpi)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	sector = "data.addRows([\n['Drill'," + strconv.FormatFloat(s1, 'f', 4, 64) + "],\n['Radio'," + strconv.FormatFloat(s2, 'f', 4, 64) + "],\n['Flying'," + strconv.FormatFloat(s3, 'f', 4, 64) + "],\n['Gliding'," + strconv.FormatFloat(s4, 'f', 4, 64) + "],\n['Fieldcraft'," + strconv.FormatFloat(s5, 'f', 4, 64) + "],\n['Classifications'," + strconv.FormatFloat(s6, 'f', 4, 64) + "],\n['Sports'," + strconv.FormatFloat(s7, 'f', 4, 64) + "],\n['Adventurous Training'," + strconv.FormatFloat(s8, 'f', 4, 64) + "],\n['First Aid'," + strconv.FormatFloat(s9, 'f', 4, 64) + "],\n['Leadership'," + strconv.FormatFloat(s10, 'f', 4, 64) + "],\n['DofE'," + strconv.FormatFloat(s11, 'f', 4, 64) + "],\n['Community Engagement'," + strconv.FormatFloat(s12, 'f', 4, 64) + "],\n['Shooting'," + strconv.FormatFloat(s13, 'f', 4, 64) + "],\n['Music'," + strconv.FormatFloat(s14, 'f', 4, 64) + "],\n['Camps'," + strconv.FormatFloat(s15, 'f', 4, 64) + "]\n]);"
 	return sector, cpi
@@ -487,7 +487,7 @@ func tableBuilder() string {
 	var DOB time.Time
 	rows, err := db.Query("SELECT lastName, firstName, flight, dateOfBirth, userName FROM userdata")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	rowcount := 0
 	for rows.Next() {
@@ -495,7 +495,7 @@ func tableBuilder() string {
 		var userAge int
 		err := rows.Scan(&surname, &forename, &flight, &DOB, &userName)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			return "Error"
 		}
 		userAge = age.Age(DOB)
@@ -625,7 +625,8 @@ func userLoad(w http.ResponseWriter, r *http.Request) {
 		userName = query.Get("username")
 		err := db.QueryRow("SELECT * FROM userdata WHERE userName=?", userName).Scan(&userName, &forename, &surname, &DOB, &DOE, &sex, &flight)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			http.Error(w, "Internal Error", 500 )
 		}
 		if sex == "F" {
 			sex = "<input type=\"radio\" name=\"gender\" id=\"gender-male\" class=\"button\" value=\"male\"> Male<br><input type=\"radio\" name=\"gender\" id=\"gender-female\" class=\"button\" value=\"female\" checked> Female<br>"
@@ -779,13 +780,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if auth == true {
-			session, err := store.Get(r, userName)
+			session, err := store.Get(r, "CadetTracker")
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			session.Values["username"] = userName
 			session.Values["group"] = group
+			session.Options.MaxAge = 1800
 			session.Save(r,w)
 			redirect = "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/"+group+"\" /></head><body><p>Login Successful. Wait 2 seconds, or click <a href=\"/"+group+"\">here</a> if you are not automatically redirected.</p></body>"
 			fmt.Fprintf(w, redirect)
@@ -796,13 +798,28 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func logout (w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, "CadetTracker")
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	session.Options.MaxAge = -1
+	session.Save(r,w)
+	http.Redirect(w,r,"/login", 401)
+}
+
+func root (w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"0.5;URL=/login\" /></head>")
+}
+
 func main() {
 	//Loads configuration for connection to LDAP Directory
 	configLoad()
 	//Populates userTable so can check if user is present and convert between sAMAccountName and DistinguishedName
 	userTableFill()
 	//Opens connection to the database under the db variable
-	db, err = sql.Open("mysql", "root:Dragon121@tcp(localhost:3306)/CadetTracker?parseTime=true")
+	db, err = sql.Open("mysql", config["sqlusername"]+":"+config["sqlpassword"]+"@tcp("+config["sqlip"]+":"+config["sqlport"]+")/"+config["dbname"]+"?parseTime=true")
 	//Error handler
 	if err != nil {
 		log.Println(err)
@@ -815,7 +832,9 @@ func main() {
 	}
 	//Web server
 	//Defines handler functions for each webpage
+	http.HandleFunc("/", root)
 	http.HandleFunc("/login", login)
+	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/cadet", progressionTracker)
 	http.HandleFunc("/staff", staffPage)
 	http.HandleFunc("/dbwrite", dbWrite)

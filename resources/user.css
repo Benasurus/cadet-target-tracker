@@ -17,12 +17,19 @@ header {
 }
 
 h1 {
-    width: 79%;
+    width: 69%;
     display: inline-block;
 }
 
 .swap {
     width: 20%;
+    display: inline-block;
+    text-align: center;
+    font-size: 32px;
+}
+
+.logout {
+    width: 10%;
     display: inline-block;
     text-align: center;
     font-size: 32px;

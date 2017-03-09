@@ -507,7 +507,7 @@ func tableBuilder() string {
 }
 
 func progressionTracker(w http.ResponseWriter, r *http.Request) {
-	var userName, group string
+	var userName, group, redirect string
 	var auth bool
 	auth,userName,group = authCookie(w,r)
 	if auth == true && group == "staff" {
@@ -527,12 +527,13 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Redirect(w,r,"/login", 401)
+		redirect = "<head><title>Invalid Cookie</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /></head><body><p>Invalid Cookie. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</p></body>"
+		fmt.Fprintf(w, redirect)
 	}
 }
 
 func staffPage(w http.ResponseWriter, r *http.Request) {
-	var group string
+	var group, redirect string
 	var auth bool
 	overall, flight, sex, sectors := dataCalculation()
 	auth,_,group = authCookie(w,r)
@@ -554,12 +555,13 @@ func staffPage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Redirect(w,r,"/login", 401)
+		redirect = "<head><title>Invalid Cookie</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /></head><body><p>Invalid Cookie. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</p></body>"
+		fmt.Fprintf(w, redirect)
 	}
 }
 
 func userManagement(w http.ResponseWriter, r *http.Request) {
-	var group string
+	var group, redirect string
 	var auth bool
 	table := tableBuilder()
 	auth,_,group = authCookie(w,r)
@@ -578,7 +580,8 @@ func userManagement(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		http.Redirect(w,r,"/login", 401)
+		redirect = "<head><title>Invalid Cookie</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /></head><body><p>Invalid Cookie. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</p></body>"
+		fmt.Fprintf(w, redirect)
 	}
 }
 
@@ -799,6 +802,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout (w http.ResponseWriter, r *http.Request) {
+	var redirect string
 	session, err := store.Get(r, "CadetTracker")
 	if err != nil {
 		log.Println(err)
@@ -806,7 +810,8 @@ func logout (w http.ResponseWriter, r *http.Request) {
 	}
 	session.Options.MaxAge = -1
 	session.Save(r,w)
-	http.Redirect(w,r,"/login", 401)
+	redirect = "<head><title>Logout Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /></head><body><p>Logout Successful. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</p></body>"
+	fmt.Fprintf(w, redirect)
 }
 
 func root (w http.ResponseWriter, r *http.Request) {

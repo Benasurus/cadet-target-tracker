@@ -47,6 +47,10 @@ function cadetWrite(){
     return false;
 }
 
+function logout() {
+    window.location="/logout"
+}
+
 mypostrequest.onreadystatechange=function(){
  if (mypostrequest.readyState==4){
   if (mypostrequest.status==200 || window.location.href.indexOf("http")==-1){

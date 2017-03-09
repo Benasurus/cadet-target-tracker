@@ -98,14 +98,18 @@ header.sticky {
 }
 
 .cadet-header-title {
-    width: 80%;
+    width: 69%;
     display: inline-block;
-
 }
 
 .cadet-header-button {
     width: 20%;
     background: #fff;
     font-size: 20%;
+}
 
+.logout-header-button {
+    width: 10%;
+    background: #fff;
+    font-size: 20%;
 }

@@ -122,6 +122,10 @@
         function user () {
             window.location.assign("/user");
         }
+
+        function logout() {
+            window.location="/logout"
+        }
     </script>
     <link rel="stylesheet" type="text/css" href="/resources/staff.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
@@ -130,6 +134,7 @@
     <header id="staff-header-title" class="staff-header">
         <h1>Dashboard</h1>
         <div id="swap" class="swap" onClick="user()">User Management</div>
+        <div id="logout" class="logout" onclick="logout();">Logout</div>
     </header>
     <div id="top-half" class="half"> 
         <div id="left-quarter" class="quarter">

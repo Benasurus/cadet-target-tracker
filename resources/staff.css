@@ -75,7 +75,7 @@ header {
 }
 
 h1 {
-    width: 79%;
+    width: 69%;
     display: inline-block;
 }
 
@@ -88,7 +88,7 @@ h1 {
 }
 
 .logout {
-    width: 10%;
+    width: 9%;
     display: inline-block;
     text-align: center;
     cursor: pointer;

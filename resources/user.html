@@ -30,7 +30,7 @@
     <div id="user-panel" class="panel">
     </div>
     <!-- Trigger/Open The Modal -->
-    <button id="myBtn">Open Modal</button>
+    <button id="myBtn">Add User</button>
 
     <!-- The Modal -->
     <div id="myModal" class="modal">
@@ -41,18 +41,18 @@
             <h2>Add User</h2>
             <form name="userAdd" autocomplete="off">
                 Username:<br>
-                <input type="text" name="username" id="Addusername" class="readInputAdd" value=""><br>
+                <input type="text" name="username" id="Addusername" class="readInputAdd" value="" pattern="[a-zA-Z0-9]+" required><br>
                 Forename:<br>
-                <input type="text" name="forename" id="Addforename" class="textInputAdd" value=""><br>
+                <input type="text" name="forename" id="Addforename" class="textInputAdd" value="" pattern="[a-zA-Z]+" required><br>
                 Surname:<br>
-                <input type="text" name="surname" id="Addsurname" class="textInputAdd" value=""><br>
+                <input type="text" name="surname" id="Addsurname" class="textInputAdd" value="" pattern="[a-zA-Z]+" required><br>
                 Flight:<br>
                 <input type="radio" name="flight" id="Addflight-a" class="button" value="A" checked> A<br>
                 <input type="radio" name="flight" id="Addflight-b" class="button" value="B"> B<br>
                 Date of Birth:<br>
-                <input type="date" name="dob" id="Adddob" class="dateInputAdd" value=""><br>
+                <input type="date" name="dob" id="Adddob" class="dateInputAdd" value="" required><br>
                 Date of Enrolment:<br>
-                <input type="date" name="doe" id="Adddoe" class="dateInputAdd" value=""><br>
+                <input type="date" name="doe" id="Adddoe" class="dateInputAdd" value="" required><br>
                 Gender:<br>
                 <input type="radio" name="gender" id="Addgender-male" class="button" value="male" checked> Male<br>
                 <input type="radio" name="gender" id="Addgender-female" class="button" value="female"> Female<br>

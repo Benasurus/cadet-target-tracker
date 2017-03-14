@@ -26,9 +26,9 @@
 
 <form name="userModify" autocomplete="off">
         Forename:<br>
-        <input type="text" name="forename" id="forename" class="textInput" value="{{ .forename }}"><br>
+        <input type="text" name="forename" id="forename" class="textInput" value="{{ .forename }}" pattern="[a-zA-Z]+" required><br>
         Surname:<br>
-        <input type="text" name="surname" id="surname" class="textInput" value="{{ .surname }}"><br>
+        <input type="text" name="surname" id="surname" class="textInput" value="{{ .surname }}" pattern="[a-zA-Z]+" required><br>
         Flight:<br>
         {{ .flight }}
         Cadet Progression Index:<br>
@@ -36,11 +36,11 @@
         Age:<br>
         <input type="number" name="age" id="age" class="readInput" value="{{ .age }}" readonly> Years Old<br>
         Date of Birth:<br>
-        <input type="date" name="dob" id="dob" class="dateInput" value="{{ .dob }}"><br>
+        <input type="date" name="dob" id="dob" class="dateInput" value="{{ .dob }}" required><br>
         Cadet Career Length:<br>
         <input type="number" name="career" id="career" class="readInput" value="{{ .cadet }}" readonly> Years<br>
         Date of Enrolment:<br>
-        <input type="date" name="doe" id="doe" class="dateInput" value="{{ .doe }}"><br>
+        <input type="date" name="doe" id="doe" class="dateInput" value="{{ .doe }}" required><br>
         Gender:<br>
         {{ .sex }}
         Username:<br>

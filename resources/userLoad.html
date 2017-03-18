@@ -24,7 +24,7 @@
     }
 </script>
 
-<form name="userModify" autocomplete="off">
+<form name="userModify" id="userModify" autocomplete="off">
         Forename:<br>
         <input type="text" name="forename" id="forename" class="textInput" value="{{ .forename }}" pattern="[a-zA-Z]+" required><br>
         Surname:<br>
@@ -32,7 +32,7 @@
         Flight:<br>
         {{ .flight }}
         Cadet Progression Index:<br>
-        <input type="number" name="cpi" id="cpi" class="readInput" value="{{ .cpi}} " readonly><br>
+        <input type="number" name="cpi" id="cpi" class="readInput" value="{{ .cpi}}" readonly><br>
         Age:<br>
         <input type="number" name="age" id="age" class="readInput" value="{{ .age }}" readonly> Years Old<br>
         Date of Birth:<br>

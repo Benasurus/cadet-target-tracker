@@ -126,14 +126,16 @@
             window.location="/logout"
         }
     </script>
-    <link rel="stylesheet" type="text/css" href="/resources/staff.css">
+    <link rel="stylesheet" type="text/css" href="/resources/style.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 </head>
 <body>
-    <header id="staff-header-title" class="staff-header">
+    <header id="staff-user" >
         <h1>Dashboard</h1>
-        <div id="swap" class="swap" onClick="user()">User Management</div>
-        <div id="logout" class="logout" onclick="logout();">Logout</div>
+        <div class="float-right">
+            <div class="nav-buttons" onClick="user()">User Management</div>
+            <div class="nav-buttons" onclick="logout();">Logout</div>
+        </div>
     </header>
     <div id="top-half" class="half"> 
         <div id="left-quarter" class="quarter">

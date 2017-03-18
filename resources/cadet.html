@@ -3,25 +3,21 @@
 <head>
     <script type="text/javascript" src="/resources/cadet.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="/resources/cadet.css">
+    <link rel="stylesheet" type="text/css" href="/resources/style.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 </head> 
 <body>
-<div class="cadet-header">
-<header>
-    <div id="cadet-header-title">
-        <h1>Dashboard?</h1>
-    </div>
-    <div id="cadet-header-button" class="cadet-button" onclick="cadetWrite();">
-        Save
-    </div>
-    <div id="logout-header-button" class="logout-button" onclick="logout();">
-        Logout
+
+<header id="cadet-header">
+    <h1>Cadet Tracker</h1>
+    <div class="float-right">
+        <div class="nav-buttons" onclick="cadetWrite();">Save</div>
+        <div class="nav-buttons" onclick="logout();">Logout</div>
     </div>
 </header>
-</div>
 
-<div>
+
+<div id="cadet-sectors">
     {{ .html }}
 </div>
 <script>

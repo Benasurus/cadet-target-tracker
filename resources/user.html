@@ -2,7 +2,7 @@
 <head>
     <script type="text/javascript" src="/resources/user.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="/resources/user.css">
+    <link rel="stylesheet" type="text/css" href="/resources/style.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript"> 
@@ -10,13 +10,15 @@
 </script>
 </head>
 <body onload="loadModalVariables()">
-    <header id="user-header-title" class="user-header">
+   <header id="staff-user" >
         <h1>User Management</h1>
-        <div id="swap" class="swap button" onClick="dashboard()">Dashboard</div>
-        <div id="logout" class="logout button" onclick="logout();">Logout</div>
+        <div class="float-right">
+            <div class="nav-buttons" onClick="dashboard()">Dashboard</div>
+            <div class="nav-buttons" onclick="logout();">Logout</div>
+        </div>
     </header>
-    <div id="list-panel" class="panel">
-        <table id="user-list" class="list">
+    <div id="user-panel">
+        <table id="user-list">
         <tr>
                 <th>Surname</th>
                 <th>Forename</th>
@@ -26,12 +28,13 @@
         </tr>
         {{ .table }}
         </table>
+         <div id="add-user">
+            <button id="myBtn">Add User</button>
+        </div>
     </div>
-    <div id="user-panel" class="panel">
+    <div id="user-edit" class="panel">
     </div>
     <!-- Trigger/Open The Modal -->
-    <button id="myBtn">Add User</button>
-
     <!-- The Modal -->
     <div id="myModal" class="modal">
 
@@ -39,7 +42,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Add User</h2>
-            <form name="userAdd" autocomplete="off">
+            <form name="userAdd" id="userAdd" autocomplete="off">
                 Username:<br>
                 <input type="text" name="username" id="Addusername" class="readInputAdd" value="" pattern="[a-zA-Z0-9]+" required><br>
                 Forename:<br>
@@ -56,7 +59,7 @@
                 Gender:<br>
                 <input type="radio" name="gender" id="Addgender-male" class="button" value="male" checked> Male<br>
                 <input type="radio" name="gender" id="Addgender-female" class="button" value="female"> Female<br>
-                <input type="submit" value="Add" onclick="addUser()">
+                <input type="submit" value="Add" onclick="return addUser()">
             </form>
         </div>
 

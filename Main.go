@@ -151,7 +151,11 @@ func authLDAP(w http.ResponseWriter, r *http.Request, username string, password 
     } else if strings.Contains(userTable[username], "ou=cadets") {
         group = "cadet"
     } else {
-		group = "staff"
+		if username == "mediapc" {
+			group = "cadet"
+		} else {
+			group = "staff"
+		}
 	}
 	return true, group
 }
@@ -499,7 +503,7 @@ func tableBuilder() string {
 			return "Error"
 		}
 		userAge = age.Age(DOB)
-		newRow = "<tr id=\"user-row-" + strconv.Itoa(rowcount) + "\" class=\"button\" onclick=\"loadData('" + userName + "')\">\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
+		newRow = "<tr id=\"user-row-" + strconv.Itoa(rowcount) + "\" class=\"user-row\" onclick=\"loadData('" + userName + "')\">\n		<td>" + surname + "</td>\n		<td>" + forename + "</td>\n		<td>" + flight + "</td>\n		<td>" + strconv.Itoa(userAge) + "</td>\n	<td>" + userName + "</td>\n	</tr>\n	"
 		table += newRow
 		rowcount++
 	}
@@ -510,7 +514,7 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 	var userName, group, redirect string
 	var auth bool
 	auth,userName,group = authCookie(w,r)
-	if auth == true && group == "staff" {
+	if auth == true && group == "cadet" {
 		html := progressionBuilder(5, 15, userName)
 		pagevars := map[string]interface{}{
 			"html": template.HTML(html),
@@ -731,7 +735,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 			_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
 			if err != nil {
 				log.Println(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w,"Internal Error", 500 )
 			}
 		}
 	} else {
@@ -792,7 +796,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			session.Values["group"] = group
 			session.Options.MaxAge = 1800
 			session.Save(r,w)
-			redirect = "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/"+group+"\" /></head><body><p>Login Successful. Wait 2 seconds, or click <a href=\"/"+group+"\">here</a> if you are not automatically redirected.</p></body>"
+			redirect = "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/"+group+"\" /><link rel=\"stylesheet\" type=\"text/css\" href=\"/resources/style.css\"><link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\"></head><body><div id=\"login-interstitial\">Login Successful. Wait 2 seconds, or click <a href=\"/"+group+"\">here</a> if you are not automatically redirected.</div></body>"
 			fmt.Fprintf(w, redirect)
 		} else {
 			http.Error(w, "Incorrect Password", 401 )
@@ -801,7 +805,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func logout (w http.ResponseWriter, r *http.Request) {
+func logout(w http.ResponseWriter, r *http.Request) {
 	var redirect string
 	session, err := store.Get(r, "CadetTracker")
 	if err != nil {
@@ -810,11 +814,11 @@ func logout (w http.ResponseWriter, r *http.Request) {
 	}
 	session.Options.MaxAge = -1
 	session.Save(r,w)
-	redirect = "<head><title>Logout Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /></head><body><p>Logout Successful. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</p></body>"
+	redirect = "<head><title>Logout Successful</title><meta http-equiv=\"refresh\" content=\"2;URL=/login\" /><link rel=\"stylesheet\" type=\"text/css\" href=\"/resources/style.css\"><link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\"></head><body><div id=\"logout-interstitial\">Logout Successful. Wait 2 seconds, or click <a href=\"/login\">here</a> if you are not automatically redirected.</div></body>"
 	fmt.Fprintf(w, redirect)
 }
 
-func root (w http.ResponseWriter, r *http.Request) {
+func root(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<head><title>Login Successful</title><meta http-equiv=\"refresh\" content=\"0.5;URL=/login\" /></head>")
 }
 
@@ -837,7 +841,7 @@ func main() {
 	}
 	//Web server
 	//Defines handler functions for each webpage
-	http.HandleFunc("/", root)
+	http.HandleFunc("/", login)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/cadet", progressionTracker)

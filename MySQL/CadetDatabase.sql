@@ -70,7 +70,7 @@ CREATE TABLE `transactions` (
   PRIMARY KEY (`transactionID`),
   KEY `userName` (`userName`),
   CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`userName`) REFERENCES `userdata` (`userName`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -79,7 +79,6 @@ CREATE TABLE `transactions` (
 
 LOCK TABLES `transactions` WRITE;
 /*!40000 ALTER TABLE `transactions` DISABLE KEYS */;
-INSERT INTO `transactions` VALUES (1,'jeff','2016-11-16 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,27),(2,'dave','2016-11-18 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38),(3,'dave','2016-12-01 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40),(4,'dave','2016-12-11 00:00:01',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,43),(5,'bob','2016-12-11 00:00:05',1,2,4,2,1,1,2,3,1,2,2,2,2,1,3,38);
 /*!40000 ALTER TABLE `transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -108,7 +107,6 @@ CREATE TABLE `userdata` (
 
 LOCK TABLES `userdata` WRITE;
 /*!40000 ALTER TABLE `userdata` DISABLE KEYS */;
-INSERT INTO `userdata` VALUES ('bob','bob','last','1999-04-22','2012-07-04','M','A'),('dave','dave','later','2001-02-11','2014-04-12','M','B'),('jeff','jeff','late','2000-07-24','2014-04-19','M','B');
 /*!40000 ALTER TABLE `userdata` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -121,4 +119,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-02-19 12:32:24
+-- Dump completed on 2017-03-18 19:58:56

@@ -229,14 +229,15 @@ func userData(user string, sectionData map[string]bool) (bool, map[string]bool) 
 	//QueryTransaction module is used to query transactions table for rows that match a user
 	var tID string
 	var timeStamp, userName string
+	var cpi float64
 	var result [15]int
 	//Queries databse using SQL calling all rows which match the desired username & scans through returned row
 	err := db.QueryRow("SELECT * FROM transactions WHERE UserName=? ORDER BY timeStamp DESC LIMIT 1", user).Scan(&tID, &timeStamp, &userName, &result[0], &result[1],
-		&result[2], &result[3], &result[4], &result[5], &result[6], &result[7], &result[8], &result[9], &result[10], &result[11], &result[12], &result[13], &result[14])
+		&result[2], &result[3], &result[4], &result[5], &result[6], &result[7], &result[8], &result[9], &result[10], &result[11], &result[12], &result[13], &result[14], &cpi)
 	//Error handler
 	if err != nil {
 		log.Println(err)
-		return true, sectionData
+		return false, sectionData
 	}
 
 	for i := 1; i < 16; i++ {
@@ -249,9 +250,7 @@ func userData(user string, sectionData map[string]bool) (bool, map[string]bool) 
 			}
 		}
 	}
-	//Prints results
-	fmt.Println(userName, timeStamp)
-	return false, sectionData
+	return true, sectionData
 }
 
 func writeTransaction(user string, group string, s1 int, s2 int, s3 int, s4 int) bool {
@@ -304,7 +303,7 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	sectorDesc = make(map[string]string)
 	//Queries the sectors database
 	rows, err := db.Query("SELECT * FROM sectors")
-	fmt.Println(rows)
+
 	//Error handler
 	if err != nil {
 		log.Println(err)
@@ -312,8 +311,8 @@ func progressionBuilder(sectors, sections float64, user string) (html string) {
 	}
 	defer rows.Close()
 	//Calls user data
-	fail, sectionData := userData(user, sectionData)
-	if fail == true {
+	fail, sectionData := userData(strings.ToLower(user), sectionData)
+	if fail != true {
 		log.Println("Data Error")
 	}
 	//Scans through returned values and retrieves sector names and inserts them into the defined variables
@@ -518,7 +517,7 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 		html := progressionBuilder(5, 15, userName)
 		pagevars := map[string]interface{}{
 			"html": template.HTML(html),
-			"user": template.HTML(userName)}
+			"username": template.HTML(userName)}
 		t, err := template.ParseFiles("resources/cadet.html")
 		if err != nil {
 			log.Println(err)
@@ -537,12 +536,13 @@ func progressionTracker(w http.ResponseWriter, r *http.Request) {
 }
 
 func staffPage(w http.ResponseWriter, r *http.Request) {
-	var group, redirect string
+	var group, userName, redirect string
 	var auth bool
 	overall, flight, sex, sectors := dataCalculation()
-	auth,_,group = authCookie(w,r)
+	auth,userName,group = authCookie(w,r)
 	if auth == true && group == "staff" {
 		pagevars := map[string]interface{}{
+			"username": template.HTML(userName),
 			"overall": template.JS(overall),
 			"flight":  template.JS(flight),
 			"sex":     template.JS(sex),
@@ -565,12 +565,13 @@ func staffPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func userManagement(w http.ResponseWriter, r *http.Request) {
-	var group, redirect string
+	var group, userName, redirect string
 	var auth bool
 	table := tableBuilder()
-	auth,_,group = authCookie(w,r)
+	auth,userName,group = authCookie(w,r)
 	if auth == true && group == "staff" {
 		pagevars := map[string]interface{}{
+			"username": template.HTML(userName),
 			"table": template.HTML(table)}
 		t, err := template.ParseFiles("resources/user.html")
 		if err != nil {
@@ -607,8 +608,7 @@ func dbWrite(w http.ResponseWriter, r *http.Request) {
 		total += valueFloat
 	}
 	//Calculate Cadet Progression Index
-	CPI = total / 150
-	fmt.Println("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
+	CPI = total
 	if auth == true && group == "cadet" {
 		_, err := db.Exec("INSERT INTO transactions(userName" + column + ",cpi) VALUES(\"" + username + "\"" + value + "," + strconv.FormatFloat(CPI, 'f', 2, 64) + ")")
 		if err != nil {
@@ -732,7 +732,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 			flight = "B"
 		}
 		if auth == true && group == "staff" {
-			_, err := db.Exec("INSERT INTO userdata VALUES ('" + userName + "','" + firstName + "','" + lastName + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
+			_, err := db.Exec("INSERT INTO userdata VALUES ('" + strings.ToLower(userName) + "','" + strings.ToLower(firstName) + "','" + strings.ToLower(lastName) + "','" + dob + "','" + doe + "','" + sex + "','" + flight + "')")
 			if err != nil {
 				log.Println(err)
 				http.Error(w,"Internal Error", 500 )
@@ -773,7 +773,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		var userName, password, group, redirect string
+		var result, userName, password, group, redirect string
 		var auth bool
 
 		r.ParseForm()
@@ -785,7 +785,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 		} else {
 			http.Error(w, "Incorrect Username", 401 )
 		}
-
+		if group == "cadet" {
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM userData WHERE userName=\""+strings.ToLower(userName)+"\")").Scan(&result)
+			if err != nil && result != "1" {
+				log.Println(err)
+				http.Error(w, "User does not Exist", 401 )
+				return
+			}
+		}
 		if auth == true {
 			session, err := store.Get(r, "CadetTracker")
 			if err != nil {

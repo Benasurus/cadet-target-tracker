@@ -10,11 +10,14 @@
 </script>
 </head>
 <body onload="loadModalVariables()">
-   <header id="staff-user" >
+   <header id="staff-user">
         <h1>User Management</h1>
         <div class="float-right">
-            <div class="nav-buttons" onClick="dashboard()">Dashboard</div>
-            <div class="nav-buttons" onclick="logout();">Logout</div>
+            <div class="username">{{ .username }}</div>
+            <div>
+                <div class="nav-buttons" onClick="dashboard()">Dashboard</div>
+                <div class="nav-buttons" onclick="logout();">Logout</div>
+            </div>
         </div>
     </header>
     <div id="user-panel">
@@ -29,7 +32,7 @@
         {{ .table }}
         </table>
          <div id="add-user">
-            <button id="myBtn">Add User</button>
+            <button id="myBtn" class="button">Add User</button>
         </div>
     </div>
     <div id="user-edit" class="panel">
@@ -58,11 +61,10 @@
                 <input type="date" name="doe" id="Adddoe" class="dateInputAdd" value="" required><br>
                 Gender:<br>
                 <input type="radio" name="gender" id="Addgender-male" class="button" value="male" checked> Male<br>
-                <input type="radio" name="gender" id="Addgender-female" class="button" value="female"> Female<br>
-                <input type="submit" value="Add" onclick="return addUser()">
+                <input type="radio" name="gender" id="Addgender-female" class="button" value="female"> Female<br><br>
+                <input type="submit" value="Add" class="button" onclick="return addUser()">
             </form>
         </div>
-
 </div>   
 </body>
 </html>

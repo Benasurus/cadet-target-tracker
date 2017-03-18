@@ -45,8 +45,7 @@
         {{ .sex }}
         Username:<br>
         <input type="text" name="username" id="username" class="readInput" value="{{ .username }}" readonly><br>
-        <input type="submit" value="Save" onclick="saveData()">
+        <input type="submit" value="Save" class="button" onclick="saveData()">
 </form >
-<button type="button" onclick="deleteUser({{ .username }})">Delete User<button>
-<div id="sector-chart" class="chart">
-</div>
+<div id="sector-chart" class="chart"></div>
+<button type="button" class="button" onclick="deleteUser({{ .username }})">Delete User</button>

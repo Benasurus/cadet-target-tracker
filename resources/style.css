@@ -31,6 +31,15 @@ body {
     background:  #f2f2f2;
     }
 
+/* Generic Styles */
+
+.username {
+    text-transform: lowercase;
+    text-align: right;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
 /* Generic Graph Display Styles */
 
 .half {
@@ -92,6 +101,7 @@ header#staff-user {
 #staff-user h1 {
     display: inline-block;
     font-size: 250%;
+    vertical-align: 50%;
 }
 
 .float-right {
@@ -103,13 +113,14 @@ header#staff-user {
     display: inline-block;
     margin: 10px;
     font-size: 120%;
+    cursor: pointer;
 }
 
 .toggle-chart {
     height: 270px;
 }
 
-.button {
+.toggle-button {
     float: left;
     width: 50%;
     height: 30px;
@@ -117,6 +128,7 @@ header#staff-user {
     color: #fff;
     text-align: center;
     line-height: 30px;
+    cursor: pointer;
 }
 
 .selected {
@@ -190,7 +202,7 @@ chart {
     margin: auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
+    width: 15%;
 }
 
 /* The Close Button */
@@ -225,6 +237,10 @@ chart {
     margin-top: 30px;
 }
 
+.button {
+    cursor: pointer;
+}
+
 /* Cadet Page */
 
 header#cadet-header {
@@ -254,6 +270,7 @@ header#cadet-header {
     vertical-align: top;
     height: 100px;
     border-top: 2px solid gray;
+    cursor: pointer;
 }
 
 .bar-title {
@@ -290,7 +307,7 @@ header#cadet-header {
 }
 
 .sector-false:hover,.sector-true:hover {
-    background: yellow;
+    background: #bfbfbf;
 }
 
 .sector-title,.sector-bar {
@@ -306,4 +323,3 @@ header#cadet-header {
 header#cadet-header.sticky {
     height: 48px;
 }
-
